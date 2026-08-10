@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
 export type PageRotation = 0 | 90 | 180 | 270;
@@ -18,6 +19,7 @@ type PdfPagesState = {
   initPages: (numPages: number) => void;
   setCurrentPage: (pageId: string) => void;
   rotatePage: (pageId: string, direction: "cw" | "ccw") => void;
+  deletePage: (pageId: string) => void;
   clearPages: () => void;
 };
 
@@ -69,6 +71,23 @@ export const usePdfPagesStore = create<PdfPagesState>()((set, get) => ({
       entry.id === pageId ? rotatePageEntry(entry, direction) : entry,
     );
     set({ pages });
+  },
+
+  deletePage: (pageId) => {
+    const { pages, currentPageId } = get();
+    if (pages.length <= 1) return;
+    const index = pages.findIndex((entry) => entry.id === pageId);
+    if (index === -1) return;
+    const nextPages = pages.filter((entry) => entry.id !== pageId);
+    let nextCurrent = currentPageId;
+    if (currentPageId === pageId) {
+      const fallbackIndex = Math.min(index, nextPages.length - 1);
+      nextCurrent = nextPages[fallbackIndex].id;
+    }
+    set({ pages: nextPages, currentPageId: nextCurrent });
+    usePdfViewerStore.setState({ numPages: nextPages.length });
+    syncViewerCurrentPage(nextPages, nextCurrent ?? nextPages[0].id);
+    useAnnotationStore.getState().removePageAnnotations(pageId);
   },
 
   clearPages: () => set({ pages: [], currentPageId: null }),

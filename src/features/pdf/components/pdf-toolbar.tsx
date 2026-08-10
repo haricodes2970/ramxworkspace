@@ -9,6 +9,7 @@ import {
   RotateCcw,
   RotateCw,
   Search,
+  Trash2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
+import { PdfConfirmButton } from "@/features/pdf/components/pdf-confirm-button";
 import { PdfToolsGroup } from "@/features/pdf/components/pdf-tools-group";
 import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
@@ -52,6 +54,7 @@ export function PdfToolbar() {
   );
   const currentPageId = usePdfPagesStore((state) => state.currentPageId);
   const rotatePage = usePdfPagesStore((state) => state.rotatePage);
+  const deletePage = usePdfPagesStore((state) => state.deletePage);
 
   const [pageInput, setPageInput] = useState(String(currentPage));
 
@@ -240,6 +243,29 @@ export function PdfToolbar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Rotate clockwise</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PdfConfirmButton
+              onConfirm={() => {
+                if (currentPageId) deletePage(currentPageId);
+              }}
+              ariaLabel={`Delete page ${currentPage}`}
+              confirmAriaLabel="Click again to confirm page deletion"
+              disabled={!currentPageId || numPages <= 1}
+              className="size-9"
+              confirmChildren={
+                <span className="text-xs font-medium">Confirm?</span>
+              }
+            >
+              <Trash2 className="size-5" aria-hidden="true" />
+            </PdfConfirmButton>
+          </TooltipTrigger>
+          <TooltipContent>
+            {numPages <= 1
+              ? "Cannot delete the only page"
+              : "Delete current page"}
+          </TooltipContent>
         </Tooltip>
       </div>
 

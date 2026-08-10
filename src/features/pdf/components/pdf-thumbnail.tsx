@@ -3,6 +3,7 @@
 import type { PDFPageProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { PdfConfirmButton } from "@/features/pdf/components/pdf-confirm-button";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
@@ -26,6 +27,7 @@ export function PdfThumbnail({
 }: PdfThumbnailProps) {
   const doc = usePdfViewerStore((state) => state.doc);
   const currentPageId = usePdfPagesStore((state) => state.currentPageId);
+  const deletePage = usePdfPagesStore((state) => state.deletePage);
 
   const containerRef = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -114,28 +116,47 @@ export function PdfThumbnail({
   const isCurrent = pageId === currentPageId;
 
   return (
-    <button
-      ref={containerRef}
-      type="button"
-      aria-label={`Go to page ${displayIndex}`}
-      aria-current={isCurrent ? "page" : undefined}
-      onClick={() => onSelect(displayIndex)}
+    <div
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-md border border-transparent p-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+        "relative flex flex-col items-center gap-1.5 rounded-md border border-transparent p-1.5 transition-colors",
         isCurrent && "border-ring bg-ring/10",
       )}
     >
-      <div className="flex min-h-10 items-center justify-center overflow-hidden rounded-sm shadow-sm">
-        <canvas ref={canvasRef} className="block bg-white" />
-        {!rendered && (
-          <span className="px-2 py-4 text-xs text-muted-foreground">
-            {displayIndex}
+      <button
+        ref={containerRef}
+        type="button"
+        aria-label={`Go to page ${displayIndex}`}
+        aria-current={isCurrent ? "page" : undefined}
+        onClick={() => onSelect(displayIndex)}
+        className="flex flex-col items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <div className="flex min-h-10 items-center justify-center overflow-hidden rounded-sm shadow-sm">
+          <canvas ref={canvasRef} className="block bg-white" />
+          {!rendered && (
+            <span className="px-2 py-4 text-xs text-muted-foreground">
+              {displayIndex}
+            </span>
+          )}
+        </div>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {displayIndex}
+        </span>
+      </button>
+      <PdfConfirmButton
+        onConfirm={() => deletePage(pageId)}
+        ariaLabel={`Delete page ${displayIndex}`}
+        confirmAriaLabel={`Click again to confirm deleting page ${displayIndex}`}
+        className="absolute right-1 top-1 size-6"
+        confirmChildren={
+          <span aria-hidden="true" className="text-xs font-bold">
+            ✓
           </span>
-        )}
-      </div>
-      <span className="text-xs tabular-nums text-muted-foreground">
-        {displayIndex}
-      </span>
-    </button>
+        }
+      >
+        <span aria-hidden="true" className="text-xs font-bold">
+          ✕
+        </span>
+      </PdfConfirmButton>
+    </div>
   );
 }

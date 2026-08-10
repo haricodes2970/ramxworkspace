@@ -44,6 +44,7 @@ type AnnotationStore = {
   beginUndoGroup: () => void;
   endUndoGroup: () => void;
   deleteAnnotation: (id: string) => void;
+  removePageAnnotations: (pageId: string) => void;
   undo: () => void;
   redo: () => void;
 };
@@ -182,6 +183,20 @@ export const useAnnotationStore = create<AnnotationStore>()((set, get) => ({
       past,
       future: [],
       selectedId: null,
+    });
+  },
+
+  removePageAnnotations: (pageId) => {
+    const current = cloneSnapshots(get().annotations);
+    delete current[pageId];
+    const selectedId = get().selectedId;
+    set({
+      annotations: current,
+      selectedId:
+        selectedId &&
+        current[pageId]?.some((annotation) => annotation.id === selectedId)
+          ? selectedId
+          : null,
     });
   },
 

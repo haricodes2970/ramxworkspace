@@ -44,6 +44,7 @@ function RectShapes({
 
   return (
     <g
+      data-annotation-id={annotation.id}
       onClick={(event) => {
         event.stopPropagation();
         onSelect(annotation.id);
@@ -113,6 +114,7 @@ function DrawShape({
   return (
     <polyline
       points={points}
+      data-annotation-id={annotation.id}
       fill="none"
       stroke={annotation.color}
       strokeWidth={strokeWidthPx}
@@ -163,6 +165,7 @@ function TextShape({
 
   return (
     <div
+      data-annotation-id={annotation.id}
       className="absolute"
       style={{
         left: `${annotation.position.x * 100}%`,
@@ -244,6 +247,7 @@ function NoteShape({
 
   return (
     <div
+      data-annotation-id={annotation.id}
       className="absolute"
       style={{
         left: `${annotation.position.x * 100}%`,
@@ -277,6 +281,11 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftPoints, setDraftPoints] = useState<FractionPoint[] | null>(null);
   const drawingRef = useRef(false);
+  const draggingRef = useRef<{
+    id: string;
+    startPoint: FractionPoint;
+    annotation: Annotation;
+  } | null>(null);
 
   const activeTool = useAnnotationStore((state) => state.activeTool);
   const selectedId = useAnnotationStore((state) => state.selectedId);
@@ -296,6 +305,8 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
   const addNoteAnnotation = useAnnotationStore(
     (state) => state.addNoteAnnotation,
   );
+  const beginUndoGroup = useAnnotationStore((state) => state.beginUndoGroup);
+  const endUndoGroup = useAnnotationStore((state) => state.endUndoGroup);
 
   const pageAnnotations = useMemo(
     () => annotations[pageNumber] ?? [],
@@ -389,6 +400,81 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     }
   };
 
+  const handleSelectPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeTool !== "select") return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const target = event.target as Element | null;
+    const annotationId = target
+      ?.closest("[data-annotation-id]")
+      ?.getAttribute("data-annotation-id");
+    if (!annotationId) return;
+
+    const annotation = pageAnnotations.find(
+      (candidate) => candidate.id === annotationId,
+    );
+    if (!annotation) return;
+
+    event.preventDefault();
+    draggingRef.current = {
+      id: annotationId,
+      startPoint: clampFractionPoint(
+        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      ),
+      annotation,
+    };
+    beginUndoGroup();
+    overlay.setPointerCapture(event.pointerId);
+  };
+
+  const handleSelectPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = draggingRef.current;
+    const overlay = overlayRef.current;
+    if (!drag || !overlay || activeTool !== "select") return;
+
+    const current = clampFractionPoint(
+      fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+    );
+    const delta = {
+      x: current.x - drag.startPoint.x,
+      y: current.y - drag.startPoint.y,
+    };
+
+    const original = drag.annotation;
+    if (original.type === "draw") {
+      updateAnnotation(
+        drag.id,
+        {
+          points: original.points.map((point) =>
+            clampFractionPoint({ x: point.x + delta.x, y: point.y + delta.y }),
+          ),
+        },
+        false,
+      );
+    } else if (original.type === "text" || original.type === "note") {
+      updateAnnotation(
+        drag.id,
+        {
+          position: clampFractionPoint({
+            x: original.position.x + delta.x,
+            y: original.position.y + delta.y,
+          }),
+        },
+        false,
+      );
+    }
+  };
+
+  const handleSelectPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = draggingRef.current;
+    const overlay = overlayRef.current;
+    if (!drag || !overlay) return;
+    draggingRef.current = null;
+    overlay.releasePointerCapture(event.pointerId);
+    endUndoGroup();
+  };
+
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -443,10 +529,22 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
         cursor: activeTool === "pen" ? "crosshair" : undefined,
       }}
       aria-hidden="true"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerDown={(event) => {
+        handlePointerDown(event);
+        handleSelectPointerDown(event);
+      }}
+      onPointerMove={(event) => {
+        handlePointerMove(event);
+        handleSelectPointerMove(event);
+      }}
+      onPointerUp={(event) => {
+        handlePointerUp(event);
+        handleSelectPointerUp(event);
+      }}
+      onPointerCancel={(event) => {
+        handlePointerUp(event);
+        handleSelectPointerUp(event);
+      }}
       onClick={handleOverlayClick}
     >
       <svg

@@ -23,6 +23,7 @@ type AnnotationStore = {
   selectedId: string | null;
   past: AnnotationsByPage[];
   future: AnnotationsByPage[];
+  undoGroupBase: AnnotationsByPage | null;
 
   setTool: (tool: AnnotationTool) => void;
   selectAnnotation: (id: string | null) => void;
@@ -35,7 +36,13 @@ type AnnotationStore = {
   ) => string | null;
   addTextAnnotation: (page: number, position: FractionPoint) => string | null;
   addNoteAnnotation: (page: number, position: FractionPoint) => string | null;
-  updateAnnotation: (id: string, patch: Partial<Annotation>) => void;
+  updateAnnotation: (
+    id: string,
+    patch: Partial<Annotation>,
+    recordHistory?: boolean,
+  ) => void;
+  beginUndoGroup: () => void;
+  endUndoGroup: () => void;
   deleteAnnotation: (id: string) => void;
   undo: () => void;
   redo: () => void;
@@ -54,6 +61,7 @@ export const useAnnotationStore = create<AnnotationStore>()((set, get) => ({
   selectedId: null,
   past: [],
   future: [],
+  undoGroupBase: null,
 
   setTool: (tool) => set({ activeTool: tool, selectedId: null }),
 
@@ -115,20 +123,43 @@ export const useAnnotationStore = create<AnnotationStore>()((set, get) => ({
     return id;
   },
 
-  updateAnnotation: (id, patch) => {
+  updateAnnotation: (id, patch, recordHistory = true) => {
     const current = cloneSnapshots(get().annotations);
     for (const pageAnnotations of Object.values(current)) {
-      const index = pageAnnotations.findIndex((annotation) => annotation.id === id);
+      const index = pageAnnotations.findIndex(
+        (annotation) => annotation.id === id,
+      );
       if (index !== -1) {
-        pageAnnotations[index] = { ...pageAnnotations[index], ...patch } as Annotation;
+        pageAnnotations[index] = {
+          ...pageAnnotations[index],
+          ...patch,
+        } as Annotation;
         break;
       }
+    }
+
+    if (!recordHistory) {
+      set({ annotations: current });
+      return;
     }
 
     const past = [...get().past, cloneSnapshots(get().annotations)].slice(
       -HISTORY_LIMIT,
     );
     set({ annotations: current, past, future: [] });
+  },
+
+  beginUndoGroup: () =>
+    set({ undoGroupBase: cloneSnapshots(get().annotations) }),
+
+  endUndoGroup: () => {
+    const base = get().undoGroupBase;
+    if (!base) return;
+    set({
+      past: [...get().past, base].slice(-HISTORY_LIMIT),
+      future: [],
+      undoGroupBase: null,
+    });
   },
 
   deleteAnnotation: (id) => {

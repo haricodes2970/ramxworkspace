@@ -152,6 +152,7 @@ export function PdfToolbar() {
       if (!ctrl && !event.altKey && !event.metaKey) {
         const toolByKey: Record<string, AnnotationTool> = {
           h: "highlight",
+          u: "underline",
           d: "pen",
           t: "text",
           n: "note",
@@ -214,7 +215,10 @@ export function PdfToolbar() {
   };
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-background px-3 py-2 sm:px-4">
+    <div
+      className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-background px-3 py-2 sm:px-4"
+      aria-keyshortcuts="Control+o Control+f Control+s Control+z Control+y Control+Shift+z Control+plus Control+minus Control+0 h u d t n Escape"
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -379,12 +383,13 @@ export function PdfToolbar() {
               variant="ghost"
               size="icon"
               aria-label="Zoom out"
+              aria-keyshortcuts="Control+-"
               onClick={zoomOut}
             >
               <ZoomOut className="size-5" aria-hidden="true" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Zoom out</TooltipContent>
+          <TooltipContent>Zoom out (Ctrl+-)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -393,13 +398,14 @@ export function PdfToolbar() {
               variant="ghost"
               size="sm"
               aria-label="Reset zoom to 100 percent"
+              aria-keyshortcuts="Control+0"
               onClick={resetZoom}
               className="w-14 tabular-nums"
             >
               {Math.round(scale * 100)}%
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Reset zoom</TooltipContent>
+          <TooltipContent>Reset zoom (Ctrl+0)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -408,12 +414,13 @@ export function PdfToolbar() {
               variant="ghost"
               size="icon"
               aria-label="Zoom in"
+              aria-keyshortcuts="Control+plus"
               onClick={zoomIn}
             >
               <ZoomIn className="size-5" aria-hidden="true" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Zoom in</TooltipContent>
+          <TooltipContent>Zoom in (Ctrl++)</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -442,12 +449,13 @@ export function PdfToolbar() {
                 variant="ghost"
                 size="icon"
                 aria-label="Export PDF"
+                aria-keyshortcuts="Control+s"
                 onClick={() => setExportOpen(true)}
               >
                 <Download className="size-5" aria-hidden="true" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Export PDF</TooltipContent>
+            <TooltipContent>Export PDF (Ctrl+S)</TooltipContent>
           </Tooltip>
         )}
         {searchOpen ? (

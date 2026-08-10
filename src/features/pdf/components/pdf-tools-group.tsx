@@ -41,6 +41,7 @@ function ToolButton({ tool, label, icon: Icon, shortcut }: ToolButtonProps) {
           size="icon"
           aria-label={label}
           aria-pressed={active}
+          aria-keyshortcuts={shortcut}
           onClick={() => setTool(tool)}
         >
           <Icon className="size-4" aria-hidden="true" />
@@ -67,16 +68,26 @@ export function PdfToolsGroup() {
       aria-label="Annotation tools"
     >
       <ToolButton tool="select" label="Select" icon={MousePointer2} />
-      <ToolButton tool="highlight" label="Highlight" icon={Highlighter} />
-      <ToolButton tool="underline" label="Underline" icon={Underline} />
+      <ToolButton
+        tool="highlight"
+        label="Highlight"
+        icon={Highlighter}
+        shortcut="H"
+      />
+      <ToolButton
+        tool="underline"
+        label="Underline"
+        icon={Underline}
+        shortcut="U"
+      />
       <ToolButton
         tool="strikeout"
         label="Strike through"
         icon={Strikethrough}
       />
-      <ToolButton tool="pen" label="Pen" icon={Pen} />
-      <ToolButton tool="text" label="Text box" icon={Type} />
-      <ToolButton tool="note" label="Sticky note" icon={StickyNote} />
+      <ToolButton tool="pen" label="Pen" icon={Pen} shortcut="D" />
+      <ToolButton tool="text" label="Text box" icon={Type} shortcut="T" />
+      <ToolButton tool="note" label="Sticky note" icon={StickyNote} shortcut="N" />
       <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
       <Tooltip>
         <TooltipTrigger asChild>
@@ -85,6 +96,7 @@ export function PdfToolsGroup() {
             variant="ghost"
             size="icon"
             aria-label="Undo (Ctrl+Z)"
+            aria-keyshortcuts="Control+z"
             disabled={!canUndo}
             onClick={undo}
           >
@@ -100,6 +112,7 @@ export function PdfToolsGroup() {
             variant="ghost"
             size="icon"
             aria-label="Redo (Ctrl+Y)"
+            aria-keyshortcuts="Control+y Control+Shift+z"
             disabled={!canRedo}
             onClick={redo}
           >

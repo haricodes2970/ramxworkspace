@@ -111,13 +111,14 @@ export function PdfExportBar() {
           if (event.key === "Enter") void handleExport();
           if (event.key === "Escape") handleCancel();
         }}
-        className="h-8 w-40 sm:w-56"
+        className="h-8 w-32 sm:w-56"
       />
       <Button
         type="button"
         size="sm"
         disabled={status === "exporting"}
         aria-label={status === "exporting" ? "Exporting PDF" : "Export PDF"}
+        aria-busy={status === "exporting"}
         onClick={() => void handleExport()}
       >
         {status === "exporting" ? (

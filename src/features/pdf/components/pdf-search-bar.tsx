@@ -50,17 +50,23 @@ export function PdfSearchBar() {
       />
       <Input
         ref={inputRef}
+        id="pdf-search-input"
         type="text"
         defaultValue={searchQuery}
         placeholder="Search in PDF"
         aria-label="Search in PDF"
         className="h-8 w-36 sm:w-52"
+        onFocus={(event) => event.target.select()}
         onChange={(event) => handleChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
             event.preventDefault();
             if (event.shiftKey) prevMatch();
             else nextMatch();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            clearSearch();
           }
         }}
       />

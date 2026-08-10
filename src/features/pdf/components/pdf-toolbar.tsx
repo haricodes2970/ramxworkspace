@@ -85,7 +85,11 @@ export function PdfToolbar() {
 
       if (ctrl && key === "f") {
         event.preventDefault();
-        setSearchOpen(true);
+        if (searchOpen) {
+          document.getElementById("pdf-search-input")?.focus();
+        } else {
+          setSearchOpen(true);
+        }
         return;
       }
 

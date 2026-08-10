@@ -1,7 +1,13 @@
 "use client";
 
 import { FileUp } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { setPdfOpenHandler } from "@/features/pdf/lib/pdf-open";

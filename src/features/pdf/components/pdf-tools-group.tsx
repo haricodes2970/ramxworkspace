@@ -87,7 +87,12 @@ export function PdfToolsGroup() {
       />
       <ToolButton tool="pen" label="Pen" icon={Pen} shortcut="D" />
       <ToolButton tool="text" label="Text box" icon={Type} shortcut="T" />
-      <ToolButton tool="note" label="Sticky note" icon={StickyNote} shortcut="N" />
+      <ToolButton
+        tool="note"
+        label="Sticky note"
+        icon={StickyNote}
+        shortcut="N"
+      />
       <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
       <Tooltip>
         <TooltipTrigger asChild>

@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fractionRectFromClientRect } from "@/features/pdf/lib/annotation-geometry";
+import {
+  clampFractionPoint,
+  fractionPointFromEvent,
+  fractionRectFromClientRect,
+} from "@/features/pdf/lib/annotation-geometry";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
+import {
+  DEFAULT_COLORS,
+  type FractionPoint,
+} from "@/features/pdf/types/annotation";
+
+const PEN_WIDTH_PX = 3;
 import type {
   Annotation,
   DrawAnnotation,
@@ -224,6 +234,8 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState<PageSize>({ width: 0, height: 0 });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftPoints, setDraftPoints] = useState<FractionPoint[] | null>(null);
+  const drawingRef = useRef(false);
 
   const activeTool = useAnnotationStore((state) => state.activeTool);
   const selectedId = useAnnotationStore((state) => state.selectedId);
@@ -236,6 +248,7 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
   const addRectAnnotation = useAnnotationStore(
     (state) => state.addRectAnnotation,
   );
+  const addAnnotation = useAnnotationStore((state) => state.addAnnotation);
 
   const pageAnnotations = useMemo(
     () => annotations[pageNumber] ?? [],
@@ -266,6 +279,52 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     activeTool === "pen" || activeTool === "text" || activeTool === "note"
       ? "auto"
       : "none";
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeTool !== "pen") return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    event.preventDefault();
+    drawingRef.current = true;
+    overlay.setPointerCapture(event.pointerId);
+    setDraftPoints([
+      clampFractionPoint(
+        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      ),
+    ]);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!drawingRef.current || activeTool !== "pen") return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    setDraftPoints((current) => [
+      ...(current ?? []),
+      clampFractionPoint(
+        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      ),
+    ]);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    overlay.releasePointerCapture(event.pointerId);
+    if (draftPoints && draftPoints.length > 1) {
+      const id = crypto.randomUUID();
+      addAnnotation({
+        id,
+        type: "draw",
+        page: pageNumber,
+        color: DEFAULT_COLORS.draw,
+        points: draftPoints,
+        strokeWidth: PEN_WIDTH_PX / (pageSize.height || 1),
+      });
+    }
+    setDraftPoints(null);
+  };
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -314,8 +373,17 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     <div
       ref={overlayRef}
       className="absolute inset-0 overflow-hidden"
-      style={{ pointerEvents: rootPointerEvents, zIndex: 3 }}
+      style={{
+        pointerEvents: rootPointerEvents,
+        zIndex: 3,
+        touchAction: activeTool === "pen" ? "none" : undefined,
+        cursor: activeTool === "pen" ? "crosshair" : undefined,
+      }}
       aria-hidden="true"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <svg
         className="absolute inset-0 h-full w-full"
@@ -346,6 +414,21 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
           }
           return null;
         })}
+
+        {draftPoints && draftPoints.length > 1 && (
+          <polyline
+            points={draftPoints
+              .map((point) => `${point.x * 100},${point.y * 100}`)
+              .join(" ")}
+            fill="none"
+            stroke={DEFAULT_COLORS.draw}
+            strokeWidth={PEN_WIDTH_PX}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            pointerEvents="none"
+          />
+        )}
       </svg>
 
       {pageAnnotations.map((annotation) => {

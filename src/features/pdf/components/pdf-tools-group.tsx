@@ -3,6 +3,7 @@
 import {
   Highlighter,
   MousePointer2,
+  Pen,
   Strikethrough,
   Underline,
 } from "lucide-react";
@@ -60,6 +61,7 @@ export function PdfToolsGroup() {
       <ToolButton tool="highlight" label="Highlight" icon={Highlighter} />
       <ToolButton tool="underline" label="Underline" icon={Underline} />
       <ToolButton tool="strikeout" label="Strike through" icon={Strikethrough} />
+      <ToolButton tool="pen" label="Pen" icon={Pen} />
     </div>
   );
 }

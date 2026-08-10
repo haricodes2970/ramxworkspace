@@ -2,6 +2,7 @@
 
 import { FileText, Loader2, X } from "lucide-react";
 import { loadPdfJs } from "@/features/pdf/lib/pdfjs";
+import { PdfPage } from "@/features/pdf/components/pdf-page";
 import { PdfUploader } from "@/features/pdf/components/pdf-uploader";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 import { Button } from "@/components/ui/button";
@@ -95,10 +96,10 @@ export function PdfWorkspace() {
           Close PDF
         </Button>
       </div>
-      <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-sm text-muted-foreground">
-          Viewer coming in the next increment.
-        </p>
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-muted/30 p-4 sm:p-6">
+        {Array.from({ length: numPages }, (_, index) => (
+          <PdfPage key={index + 1} pageNumber={index + 1} />
+        ))}
       </div>
     </div>
   );

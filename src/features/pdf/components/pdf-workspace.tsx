@@ -47,7 +47,7 @@ export function PdfWorkspace() {
       const data = await file.arrayBuffer();
       const { getDocument } = await loadPdfJs();
       const doc = await getDocument({ data }).promise;
-      setReady(doc, file.name, file.size);
+      setReady(doc, file.name, file.size, data);
       initPages(doc.numPages);
     } catch (caught) {
       setError(pdfErrorMessage(caught));

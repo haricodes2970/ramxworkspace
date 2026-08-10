@@ -13,6 +13,7 @@ type PdfViewerState = {
   status: PdfViewerStatus;
   error: string | null;
   doc: PDFDocumentProxy | null;
+  sourceBytes: ArrayBuffer | null;
   fileName: string | null;
   fileSize: number | null;
   numPages: number;
@@ -27,7 +28,12 @@ type PdfViewerState = {
 
   setLoading: () => void;
   setError: (message: string) => void;
-  setReady: (doc: PDFDocumentProxy, fileName: string, fileSize: number) => void;
+  setReady: (
+    doc: PDFDocumentProxy,
+    fileName: string,
+    fileSize: number,
+    sourceBytes: ArrayBuffer,
+  ) => void;
   closeDocument: () => void;
   setScale: (scale: number) => void;
   zoomIn: () => void;
@@ -63,6 +69,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
   status: "idle",
   error: null,
   doc: null,
+  sourceBytes: null,
   fileName: null,
   fileSize: null,
   numPages: 0,
@@ -77,7 +84,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
 
   setLoading: () => set({ status: "loading", error: null }),
   setError: (message) => set({ status: "error", error: message }),
-  setReady: (doc, fileName, fileSize) => {
+  setReady: (doc, fileName, fileSize, sourceBytes) => {
     const previous = get().doc;
     if (previous && previous !== doc) {
       void previous.destroy();
@@ -86,6 +93,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       status: "ready",
       error: null,
       doc,
+      sourceBytes,
       fileName,
       fileSize,
       numPages: doc.numPages,
@@ -105,6 +113,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       status: "idle",
       error: null,
       doc: null,
+      sourceBytes: null,
       fileName: null,
       fileSize: null,
       numPages: 0,

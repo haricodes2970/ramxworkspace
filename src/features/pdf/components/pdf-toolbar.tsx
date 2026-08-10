@@ -35,6 +35,9 @@ export function PdfToolbar() {
   const zoomOut = usePdfViewerStore((state) => state.zoomOut);
   const resetZoom = usePdfViewerStore((state) => state.resetZoom);
   const setScale = usePdfViewerStore((state) => state.setScale);
+  const setMobileThumbsOpen = usePdfViewerStore(
+    (state) => state.setMobileThumbsOpen,
+  );
 
   const [pageInput, setPageInput] = useState(String(currentPage));
 
@@ -67,6 +70,14 @@ export function PdfToolbar() {
     setScale(fitted);
   };
 
+  const toggleThumbnailPanel = () => {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      toggleThumbnails();
+    } else {
+      setMobileThumbsOpen(true);
+    }
+  };
+
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-background px-3 py-2 sm:px-4">
       <Tooltip>
@@ -77,7 +88,7 @@ export function PdfToolbar() {
             size="icon"
             aria-label={thumbnailsOpen ? "Hide thumbnails" : "Show thumbnails"}
             aria-pressed={thumbnailsOpen}
-            onClick={toggleThumbnails}
+            onClick={toggleThumbnailPanel}
           >
             {thumbnailsOpen ? (
               <PanelLeftClose className="size-5" aria-hidden="true" />

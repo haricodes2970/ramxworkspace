@@ -3,6 +3,7 @@
 import { FileText, Loader2, X } from "lucide-react";
 import { loadPdfJs } from "@/features/pdf/lib/pdfjs";
 import { PdfPageList } from "@/features/pdf/components/pdf-page-list";
+import { PdfThumbnails } from "@/features/pdf/components/pdf-thumbnails";
 import { PdfToolbar } from "@/features/pdf/components/pdf-toolbar";
 import { PdfUploader } from "@/features/pdf/components/pdf-uploader";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
@@ -99,6 +100,7 @@ export function PdfWorkspace() {
       </div>
       <PdfToolbar />
       <div className="flex min-h-0 flex-1">
+        <PdfThumbnails />
         <PdfPageList />
       </div>
     </div>

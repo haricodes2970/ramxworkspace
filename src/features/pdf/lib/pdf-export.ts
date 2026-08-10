@@ -1,4 +1,4 @@
-import type { Color, PDFPage } from "pdf-lib";
+import type { Color, PDFFont, PDFPage } from "pdf-lib";
 import type { PdfPageEntry } from "@/features/pdf/store/pdf-pages-store";
 import {
   transformFractionPoint,
@@ -11,7 +11,9 @@ import type {
   DrawAnnotation,
   FractionPoint,
   FractionRect,
+  NoteAnnotation,
   RectAnnotation,
+  TextAnnotation,
 } from "@/features/pdf/types/annotation";
 
 export type PdfExportResult = {
@@ -72,13 +74,17 @@ export async function buildExportedPdf(
   pages: PdfPageEntry[],
   annotations: AnnotationsByPage,
 ): Promise<PdfExportResult> {
-  const { PDFDocument, degrees, rgb } = await import("pdf-lib");
+  const { PDFDocument, StandardFonts, degrees, rgb } = await import("pdf-lib");
   const toColor = rgb as (r: number, g: number, b: number) => Color;
 
   const source = await PDFDocument.load(sourceBytes, {
     updateMetadata: false,
   });
   const output = await PDFDocument.create();
+  const helvetica = await output.embedStandardFont(StandardFonts.Helvetica);
+  const helveticaBold = await output.embedStandardFont(
+    StandardFonts.HelveticaBold,
+  );
 
   const sourceIndexes = pages.map((entry) => entry.sourcePage - 1);
   const copiedPages = await output.copyPages(source, sourceIndexes);
@@ -93,7 +99,15 @@ export async function buildExportedPdf(
 
     const pageAnnotations = annotations[entry.id] ?? [];
     for (const annotation of pageAnnotations) {
-      drawAnnotation(page, annotation, entry.rotation, total, toColor);
+      drawAnnotation(
+        page,
+        annotation,
+        entry.rotation,
+        total,
+        toColor,
+        helvetica,
+        helveticaBold,
+      );
     }
   }
 
@@ -120,15 +134,105 @@ function drawAnnotation(
   userRotation: PageRotation,
   totalRotation: PageRotation,
   rgb: (r: number, g: number, b: number) => Color,
+  helvetica: PDFFont,
+  helveticaBold: PDFFont,
 ) {
   if (annotation.type === "draw") {
     drawDrawAnnotation(page, annotation, userRotation, totalRotation, rgb);
     return;
   }
   if (annotation.type === "text" || annotation.type === "note") {
+    drawTextOrNoteAnnotation(
+      page,
+      annotation,
+      userRotation,
+      totalRotation,
+      rgb,
+      helvetica,
+      helveticaBold,
+    );
     return;
   }
   drawRectAnnotation(page, annotation, userRotation, totalRotation, rgb);
+}
+
+function drawTextOrNoteAnnotation(
+  page: PDFPage,
+  annotation: TextAnnotation | NoteAnnotation,
+  userRotation: PageRotation,
+  totalRotation: PageRotation,
+  rgb: (r: number, g: number, b: number) => Color,
+  helvetica: PDFFont,
+  helveticaBold: PDFFont,
+) {
+  const { width, height } = page.getSize();
+  const pageSpaceHeight = userRotation % 180 === 0 ? height : width;
+  const pdfPoint = fractionToPdfPoint(
+    transformFractionPoint(annotation.position, userRotation),
+    width,
+    height,
+    totalRotation,
+  );
+  const color = hexToRgb(annotation.color, rgb);
+
+  if (annotation.type === "text") {
+    const content = annotation.content.trim();
+    if (!content) return;
+    const size = annotation.fontSize * pageSpaceHeight;
+    const lines = content.split("\n");
+    let baseline = pdfPoint.y - size * 0.8;
+    for (const line of lines) {
+      if (line.trim()) {
+        page.drawText(line, {
+          x: pdfPoint.x,
+          y: baseline,
+          size,
+          font: helvetica,
+          color,
+        });
+      }
+      baseline -= size * 1.2;
+    }
+    return;
+  }
+
+  const markerSize = 20;
+  const markerX = pdfPoint.x;
+  const markerY = pdfPoint.y - markerSize;
+  page.drawRectangle({
+    x: markerX,
+    y: markerY,
+    width: markerSize,
+    height: markerSize,
+    color,
+    borderColor: rgb(0, 0, 0),
+    borderWidth: 0.5,
+  });
+  page.drawText("!", {
+    x: markerX + markerSize * 0.35,
+    y: markerY + markerSize * 0.18,
+    size: 12,
+    font: helveticaBold,
+    color: rgb(0, 0, 0),
+  });
+
+  const content = annotation.content.trim();
+  if (content) {
+    const size = 10;
+    let baseline = markerY - 8;
+    for (const line of content.split("\n")) {
+      if (line.trim()) {
+        page.drawText(line, {
+          x: pdfPoint.x,
+          y: baseline,
+          size,
+          font: helvetica,
+          color: rgb(0.1, 0.1, 0.1),
+        });
+      }
+      baseline -= size * 1.25;
+    }
+  }
 }
 
 function drawDrawAnnotation(

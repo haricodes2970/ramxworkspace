@@ -333,6 +333,16 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    drawingRef.current = false;
+    draggingRef.current = null;
+    setDraftPoints(null);
+  }, [activeTool, pageNumber]);
+
+  useEffect(() => {
+    setEditingId(null);
+  }, [pageNumber]);
+
   const rootPointerEvents =
     activeTool === "pen" || activeTool === "text" || activeTool === "note"
       ? "auto"

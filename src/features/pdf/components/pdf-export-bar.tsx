@@ -9,6 +9,7 @@ import {
   buildExportedPdf,
   deriveExportFileName,
   sanitizeExportFileName,
+  validateExportedPdf,
 } from "@/features/pdf/lib/pdf-export";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
@@ -67,6 +68,11 @@ export function PdfExportBar() {
         throw new Error("The document is no longer available for export.");
       }
       const result = await buildExportedPdf(sourceBytes, pages, annotations);
+      await validateExportedPdf(
+        result.bytes,
+        result.pageCount,
+        result.rotations,
+      );
       triggerDownload(result.bytes, finalName);
       setStatus("success");
       setMessage(`Saved ${finalName}`);

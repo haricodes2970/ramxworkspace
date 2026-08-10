@@ -19,6 +19,7 @@ import type {
 export type PdfExportResult = {
   bytes: Uint8Array;
   pageCount: number;
+  rotations: number[];
 };
 
 export function deriveExportFileName(originalFileName: string): string {
@@ -105,12 +106,14 @@ export async function buildExportedPdf(
 
   const sourceIndexes = pages.map((entry) => entry.sourcePage - 1);
   const copiedPages = await output.copyPages(source, sourceIndexes);
+  const rotations: number[] = [];
 
   for (let i = 0; i < copiedPages.length; i += 1) {
     const page = copiedPages[i];
     const entry = pages[i];
     const sourceRotation = page.getRotation().angle as PageRotation;
     const total = ((sourceRotation + entry.rotation) % 360) as PageRotation;
+    rotations.push(total);
     page.setRotation(degrees(total));
     output.addPage(page);
 
@@ -129,7 +132,39 @@ export async function buildExportedPdf(
   }
 
   const bytes = await output.save();
-  return { bytes, pageCount: pages.length };
+  return { bytes, pageCount: pages.length, rotations };
+}
+
+/**
+ * Reloads the freshly exported bytes with pdf-lib and verifies page count
+ * and per-page rotation against the working document state. Throws on any
+ * mismatch so a corrupted export is never offered for download.
+ */
+export async function validateExportedPdf(
+  bytes: Uint8Array,
+  pageCount: number,
+  rotations: number[],
+): Promise<void> {
+  if (bytes.byteLength === 0) {
+    throw new Error("Export produced an empty file.");
+  }
+  const { PDFDocument } = await import("pdf-lib");
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  if (doc.getPageCount() !== pageCount) {
+    throw new Error(
+      `Exported page count (${doc.getPageCount()}) does not match the working document (${pageCount}).`,
+    );
+  }
+  const exportedRotations = doc
+    .getPages()
+    .map((page) => page.getRotation().angle);
+  for (let i = 0; i < rotations.length; i += 1) {
+    if (exportedRotations[i] !== rotations[i]) {
+      throw new Error(
+        `Exported page ${i + 1} has unexpected rotation ${exportedRotations[i]} (expected ${rotations[i]}).`,
+      );
+    }
+  }
 }
 
 function hexToRgb(

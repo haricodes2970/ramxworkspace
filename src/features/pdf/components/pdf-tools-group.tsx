@@ -38,7 +38,7 @@ function ToolButton({ tool, label, icon: Icon, shortcut }: ToolButtonProps) {
         <Button
           type="button"
           variant={active ? "secondary" : "ghost"}
-          size="icon-sm"
+          size="icon"
           aria-label={label}
           aria-pressed={active}
           onClick={() => setTool(tool)}
@@ -79,7 +79,7 @@ export function PdfToolsGroup() {
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             aria-label="Undo (Ctrl+Z)"
             disabled={!canUndo}
             onClick={undo}
@@ -94,7 +94,7 @@ export function PdfToolsGroup() {
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             aria-label="Redo (Ctrl+Y)"
             disabled={!canRedo}
             onClick={redo}

@@ -631,10 +631,10 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
       })}
 
       {selectedAnnotation && (
-        <button
-          type="button"
-          aria-label="Delete annotation"
-          className="absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-xs text-destructive shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+          <button
+            type="button"
+            aria-label="Delete annotation"
+            className="absolute flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-xs text-destructive shadow-md focus-visible:ring-2 focus-visible:ring-ring"
           style={{
             left: `${deleteButtonPosition(selectedAnnotation)[0] * 100}%`,
             top: `${deleteButtonPosition(selectedAnnotation)[1] * 100}%`,

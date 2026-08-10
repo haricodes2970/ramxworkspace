@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import type { PDFPageProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,11 @@ type PdfThumbnailProps = {
   displayIndex: number;
   rotation: number;
   onSelect: (page: number) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  dropBefore: boolean;
 };
 
 export function PdfThumbnail({
@@ -24,6 +30,11 @@ export function PdfThumbnail({
   displayIndex,
   rotation,
   onSelect,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
+  dropBefore,
 }: PdfThumbnailProps) {
   const doc = usePdfViewerStore((state) => state.doc);
   const currentPageId = usePdfPagesStore((state) => state.currentPageId);
@@ -117,9 +128,12 @@ export function PdfThumbnail({
 
   return (
     <div
+      data-thumb-index
+      data-thumb-id={pageId}
       className={cn(
         "relative flex flex-col items-center gap-1.5 rounded-md border border-transparent p-1.5 transition-colors",
         isCurrent && "border-ring bg-ring/10",
+        dropBefore && "ring-2 ring-inset ring-ring",
       )}
     >
       <button
@@ -142,6 +156,15 @@ export function PdfThumbnail({
           {displayIndex}
         </span>
       </button>
+      <button
+        type="button"
+        data-drag-handle
+        aria-label={`Reorder page ${displayIndex} (drag or use arrow keys)`}
+        className="absolute left-1 top-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        style={{ touchAction: "none" }}
+      >
+        <GripVertical className="size-3.5" aria-hidden="true" />
+      </button>
       <PdfConfirmButton
         onConfirm={() => deletePage(pageId)}
         ariaLabel={`Delete page ${displayIndex}`}
@@ -157,6 +180,26 @@ export function PdfThumbnail({
           ✕
         </span>
       </PdfConfirmButton>
+      <div className="absolute bottom-1 right-1 flex flex-col">
+        <button
+          type="button"
+          aria-label={`Move page ${displayIndex} up`}
+          disabled={!canMoveUp}
+          onClick={onMoveUp}
+          className="flex size-6 items-center justify-center rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30"
+        >
+          <ChevronUp className="size-3.5" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Move page ${displayIndex} down`}
+          disabled={!canMoveDown}
+          onClick={onMoveDown}
+          className="flex size-6 items-center justify-center rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30"
+        >
+          <ChevronDown className="size-3.5" aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 }

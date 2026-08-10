@@ -19,6 +19,7 @@ type PdfPagesState = {
   initPages: (numPages: number) => void;
   setCurrentPage: (pageId: string) => void;
   rotatePage: (pageId: string, direction: "cw" | "ccw") => void;
+  movePage: (pageId: string, toIndex: number) => void;
   deletePage: (pageId: string) => void;
   clearPages: () => void;
 };
@@ -71,6 +72,19 @@ export const usePdfPagesStore = create<PdfPagesState>()((set, get) => ({
       entry.id === pageId ? rotatePageEntry(entry, direction) : entry,
     );
     set({ pages });
+  },
+
+  movePage: (pageId, toIndex) => {
+    const pages = [...get().pages];
+    const fromIndex = pages.findIndex((entry) => entry.id === pageId);
+    if (fromIndex === -1) return;
+    const clamped = Math.min(Math.max(toIndex, 0), pages.length - 1);
+    if (clamped === fromIndex) return;
+    const [entry] = pages.splice(fromIndex, 1);
+    pages.splice(clamped, 0, entry);
+    set({ pages });
+    const currentPageId = get().currentPageId ?? pages[0].id;
+    syncViewerCurrentPage(pages, currentPageId);
   },
 
   deletePage: (pageId) => {

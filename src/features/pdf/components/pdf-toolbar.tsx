@@ -22,6 +22,7 @@ import {
 import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
 import { PdfToolsGroup } from "@/features/pdf/components/pdf-tools-group";
 import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
+import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
@@ -41,19 +42,57 @@ export function PdfToolbar() {
   );
   const searchOpen = usePdfViewerStore((state) => state.searchOpen);
   const setSearchOpen = usePdfViewerStore((state) => state.setSearchOpen);
+  const undo = useAnnotationStore((state) => state.undo);
+  const redo = useAnnotationStore((state) => state.redo);
+  const selectedId = useAnnotationStore((state) => state.selectedId);
+  const deleteAnnotation = useAnnotationStore(
+    (state) => state.deleteAnnotation,
+  );
 
   const [pageInput, setPageInput] = useState(String(currentPage));
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const inEditable =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
         event.preventDefault();
         setSearchOpen(true);
+        return;
+      }
+
+      if (inEditable) return;
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "y"
+      ) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (selectedId) {
+          event.preventDefault();
+          deleteAnnotation(selectedId);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setSearchOpen]);
+  }, [setSearchOpen, undo, redo, selectedId, deleteAnnotation]);
 
   useEffect(() => {
     setPageInput(String(currentPage));

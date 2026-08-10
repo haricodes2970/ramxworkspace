@@ -4,10 +4,12 @@ import {
   Highlighter,
   MousePointer2,
   Pen,
+  Redo2,
   StickyNote,
   Strikethrough,
   Type,
   Underline,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +55,11 @@ function ToolButton({ tool, label, icon: Icon, shortcut }: ToolButtonProps) {
 }
 
 export function PdfToolsGroup() {
+  const canUndo = useAnnotationStore((state) => state.past.length > 0);
+  const canRedo = useAnnotationStore((state) => state.future.length > 0);
+  const undo = useAnnotationStore((state) => state.undo);
+  const redo = useAnnotationStore((state) => state.redo);
+
   return (
     <div
       className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5"
@@ -66,6 +73,37 @@ export function PdfToolsGroup() {
       <ToolButton tool="pen" label="Pen" icon={Pen} />
       <ToolButton tool="text" label="Text box" icon={Type} />
       <ToolButton tool="note" label="Sticky note" icon={StickyNote} />
+      <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Undo (Ctrl+Z)"
+            disabled={!canUndo}
+            onClick={undo}
+          >
+            <Undo2 className="size-4" aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Redo (Ctrl+Y)"
+            disabled={!canRedo}
+            onClick={redo}
+          >
+            <Redo2 className="size-4" aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

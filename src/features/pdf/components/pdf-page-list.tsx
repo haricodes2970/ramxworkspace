@@ -26,7 +26,6 @@ export function PdfPageList() {
     if (doc && container.clientWidth < 640) {
       void fitPdfToWidth(doc, setScale);
     }
-
     const ratios = new Map<number, number>();
 
     const observer = new IntersectionObserver(

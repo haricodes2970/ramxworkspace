@@ -21,6 +21,7 @@ type PdfThumbnailProps = {
   onMoveDown: () => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  deleteDisabled: boolean;
   dropBefore: boolean;
 };
 
@@ -34,6 +35,7 @@ export function PdfThumbnail({
   onMoveDown,
   canMoveUp,
   canMoveDown,
+  deleteDisabled,
   dropBefore,
 }: PdfThumbnailProps) {
   const doc = usePdfViewerStore((state) => state.doc);
@@ -169,6 +171,7 @@ export function PdfThumbnail({
         onConfirm={() => deletePage(pageId)}
         ariaLabel={`Delete page ${displayIndex}`}
         confirmAriaLabel={`Click again to confirm deleting page ${displayIndex}`}
+        disabled={deleteDisabled}
         className="absolute right-1 top-1 size-6"
         confirmChildren={
           <span aria-hidden="true" className="text-xs font-bold">

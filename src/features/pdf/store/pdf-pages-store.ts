@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
@@ -94,7 +95,9 @@ export const usePdfPagesStore = create<PdfPagesState>()((set, get) => ({
     if (index === -1) return;
     const nextPages = pages.filter((entry) => entry.id !== pageId);
     let nextCurrent = currentPageId;
+    let deletedCurrent = false;
     if (currentPageId === pageId) {
+      deletedCurrent = true;
       const fallbackIndex = Math.min(index, nextPages.length - 1);
       nextCurrent = nextPages[fallbackIndex].id;
     }
@@ -102,6 +105,10 @@ export const usePdfPagesStore = create<PdfPagesState>()((set, get) => ({
     usePdfViewerStore.setState({ numPages: nextPages.length });
     syncViewerCurrentPage(nextPages, nextCurrent ?? nextPages[0].id);
     useAnnotationStore.getState().removePageAnnotations(pageId);
+    if (deletedCurrent) {
+      const newIndex = nextPages.findIndex((entry) => entry.id === nextCurrent);
+      scrollToPdfPage(newIndex + 1, "auto");
+    }
   },
 
   clearPages: () => set({ pages: [], currentPageId: null }),

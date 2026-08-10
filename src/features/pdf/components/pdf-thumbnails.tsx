@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -102,6 +102,13 @@ function ThumbnailGrid({ onSelect }: { onSelect: (page: number) => void }) {
     movePage(pageId, nextIndex);
   };
 
+  useEffect(() => {
+    if (drag && !pages.some((entry) => entry.id === drag.pageId)) {
+      setDrag(null);
+      setDropIndex(null);
+    }
+  }, [pages, drag]);
+
   return (
     <div
       ref={gridRef}
@@ -126,6 +133,7 @@ function ThumbnailGrid({ onSelect }: { onSelect: (page: number) => void }) {
           onMoveDown={() => movePage(entry.id, index + 1)}
           canMoveUp={index > 0}
           canMoveDown={index < pages.length - 1}
+          deleteDisabled={pages.length <= 1}
           dropBefore={dropIndex === index && drag?.pageId !== entry.id}
         />
       ))}

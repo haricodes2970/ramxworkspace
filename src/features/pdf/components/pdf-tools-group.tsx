@@ -4,6 +4,7 @@ import {
   Highlighter,
   MousePointer2,
   Pen,
+  StickyNote,
   Strikethrough,
   Type,
   Underline,
@@ -64,6 +65,7 @@ export function PdfToolsGroup() {
       <ToolButton tool="strikeout" label="Strike through" icon={Strikethrough} />
       <ToolButton tool="pen" label="Pen" icon={Pen} />
       <ToolButton tool="text" label="Text box" icon={Type} />
+      <ToolButton tool="note" label="Sticky note" icon={StickyNote} />
     </div>
   );
 }

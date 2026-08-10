@@ -206,15 +206,41 @@ function TextShape({
 function NoteShape({
   annotation,
   tool,
+  editing,
   onStartEdit,
+  onCommit,
   onSelect,
 }: {
   annotation: NoteAnnotation;
   tool: string;
+  editing: boolean;
   onStartEdit: (id: string) => void;
+  onCommit: (id: string, content: string) => void;
   onSelect: (id: string) => void;
 }) {
   const interactive = tool === "select";
+
+  if (editing) {
+    return (
+      <div
+        className="absolute z-10"
+        style={{
+          left: `${annotation.position.x * 100}%`,
+          top: `${annotation.position.y * 100}%`,
+        }}
+      >
+        <textarea
+          autoFocus
+          defaultValue={annotation.content}
+          rows={3}
+          aria-label="Sticky note content"
+          placeholder="Write a note…"
+          className="w-52 rounded-md border border-ring bg-background p-2 text-xs text-foreground shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+          onBlur={(event) => onCommit(annotation.id, event.target.value)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -358,7 +384,8 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
       const id = addTextAnnotation(pageNumber, point);
       if (id) setEditingId(id);
     } else {
-      addNoteAnnotation(pageNumber, point);
+      const id = addNoteAnnotation(pageNumber, point);
+      if (id) setEditingId(id);
     }
   };
 
@@ -492,7 +519,12 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
               key={annotation.id}
               annotation={annotation}
               tool={activeTool}
+              editing={editingId === annotation.id}
               onStartEdit={setEditingId}
+              onCommit={(id, content) => {
+                updateAnnotation(id, { content });
+                setEditingId(null);
+              }}
               onSelect={selectAnnotation}
             />
           );

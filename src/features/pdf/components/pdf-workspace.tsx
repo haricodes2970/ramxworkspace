@@ -53,7 +53,10 @@ export function PdfWorkspace() {
     return (
       <div className="flex h-full min-h-0 flex-1 items-center justify-center p-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          <Loader2
+            className="size-6 animate-spin text-muted-foreground"
+            aria-hidden="true"
+          />
           <p className="text-sm text-muted-foreground">Opening PDF…</p>
         </div>
       </div>
@@ -66,7 +69,10 @@ export function PdfWorkspace() {
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-background px-6 py-10 text-center">
             <div className="flex size-12 items-center justify-center rounded-md border border-border bg-muted">
-              <FileText className="size-6 text-muted-foreground" aria-hidden="true" />
+              <FileText
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />
             </div>
             <h2 className="text-lg font-semibold">Could not open PDF</h2>
             <p className="text-sm leading-6 text-muted-foreground">{error}</p>

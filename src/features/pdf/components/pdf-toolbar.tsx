@@ -30,9 +30,7 @@ export function PdfToolbar() {
   const scale = usePdfViewerStore((state) => state.scale);
   const doc = usePdfViewerStore((state) => state.doc);
   const thumbnailsOpen = usePdfViewerStore((state) => state.thumbnailsOpen);
-  const toggleThumbnails = usePdfViewerStore(
-    (state) => state.toggleThumbnails,
-  );
+  const toggleThumbnails = usePdfViewerStore((state) => state.toggleThumbnails);
   const zoomIn = usePdfViewerStore((state) => state.zoomIn);
   const zoomOut = usePdfViewerStore((state) => state.zoomOut);
   const resetZoom = usePdfViewerStore((state) => state.resetZoom);
@@ -130,7 +128,11 @@ export function PdfToolbar() {
           <TooltipContent>Previous page</TooltipContent>
         </Tooltip>
 
-        <div className="flex items-center gap-1" role="group" aria-label="Page navigation">
+        <div
+          className="flex items-center gap-1"
+          role="group"
+          aria-label="Page navigation"
+        >
           <Input
             type="number"
             min={1}

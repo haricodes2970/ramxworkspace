@@ -33,9 +33,7 @@ export function PdfPageList() {
         let bestRatio = 0;
 
         for (const entry of entries) {
-          const pageNumber = Number(
-            (entry.target as HTMLElement).dataset.page,
-          );
+          const pageNumber = Number((entry.target as HTMLElement).dataset.page);
           const ratio = entry.isIntersecting ? entry.intersectionRatio : 0;
           ratios.set(pageNumber, ratio);
         }

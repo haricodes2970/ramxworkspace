@@ -116,9 +116,7 @@ export async function findPdfMatches(
   const matches: PdfSearchMatch[] = [];
   for (const { page, items } of pageData) {
     const combined = items.map((item) => item.str).join("");
-    matches.push(
-      ...findInPage({ items, combined }, page, trimmed),
-    );
+    matches.push(...findInPage({ items, combined }, page, trimmed));
   }
 
   return matches;

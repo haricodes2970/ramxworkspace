@@ -67,7 +67,10 @@ export function PdfUploader({ onFile }: PdfUploaderProps) {
             )}
           >
             <div className="flex size-12 items-center justify-center rounded-md border border-border bg-muted">
-              <FileUp className="size-6 text-muted-foreground" aria-hidden="true" />
+              <FileUp
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />
             </div>
             <h2 className="mt-5 text-xl font-semibold">Open a PDF</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">

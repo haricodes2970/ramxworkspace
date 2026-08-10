@@ -44,7 +44,10 @@ export function PdfSearchBar() {
       role="search"
       aria-label="Search in PDF"
     >
-      <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <Search
+        className="size-4 shrink-0 text-muted-foreground"
+        aria-hidden="true"
+      />
       <Input
         ref={inputRef}
         type="text"

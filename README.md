@@ -2,7 +2,7 @@
 
 RamxWorkspace is a self-hosted, privacy-first document workspace. The long-term product direction is a browser-based workspace for PDFs, Word documents, Excel sheets, PowerPoint decks, images, and future AI-assisted document tools.
 
-This repository currently implements Phase 1 Foundation only. It intentionally does not include PDF upload, PDF viewing, annotation tools, editing, export, backend APIs, authentication, database code, or PDF libraries.
+This repository implements Phase 1 Foundation and Phase 2 (client-side PDF viewer). No backend, no document uploads to third-party services: all PDF parsing and rendering happens locally in the browser.
 
 ## Tech Stack
 
@@ -25,11 +25,13 @@ src/
     layout/             Application shell, header, sidebar, theme controls
     providers/          Root providers for theme and UI primitives
     ui/                 shadcn/ui primitives owned by this codebase
-  features/             Feature modules and future document areas
+  features/
+    pdf/                Phase 2 client-side PDF viewer (uploader, viewer,
+                        thumbnails, search, stores, libs)
   lib/                  Shared runtime configuration and helpers
   store/                Zustand stores for theme and workspace UI only
   types/                Shared TypeScript domain types
-public/                 Static assets
+public/                 Static assets (incl. pdf.worker.min.mjs, copied by postinstall)
 ```
 
 ## Installation
@@ -73,12 +75,12 @@ NEXT_PUBLIC_APP_STAGE=local
 
 ## Roadmap
 
-- Phase 1: Production-ready foundation, responsive shell, theme support, Docker setup.
-- Phase 2: Client-side PDF viewer, upload flow, navigation, thumbnails, and PDF workspace basics.
+- Phase 1: Production-ready foundation, responsive shell, theme support, Docker setup. ✅
+- Phase 2: Client-side PDF viewer: upload/drag-drop, multi-page continuous rendering, navigation, zoom, fit-to-width, thumbnails, text search (Ctrl+F), graceful error handling, mobile drawer. ✅
 - Phase 3: Annotation tools, page operations, recent files, and export workflow.
 - Phase 4: Advanced PDF tools and optional self-hosted backend for heavy processing.
 - Future: Word, Excel, PowerPoint, images, offline-first workflows, and AI-powered document tools.
 
 ## Privacy Stance
 
-The MVP is designed to stay local-first. Document handling should run in the browser whenever possible, and no backend should be introduced until a later phase explicitly needs one.
+The MVP is designed to stay local-first. Document handling runs in the browser whenever possible (Phase 2 PDF viewer parses and renders entirely client-side via PDF.js), and no backend should be introduced until a later phase explicitly needs one.

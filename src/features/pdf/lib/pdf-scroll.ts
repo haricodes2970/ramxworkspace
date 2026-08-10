@@ -1,9 +1,6 @@
 export type PdfScrollBehavior = "auto" | "smooth";
 
-type PdfScrollHandler = (
-  page: number,
-  behavior: PdfScrollBehavior,
-) => void;
+type PdfScrollHandler = (page: number, behavior: PdfScrollBehavior) => void;
 
 let scrollHandler: PdfScrollHandler | null = null;
 

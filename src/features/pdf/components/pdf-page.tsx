@@ -64,7 +64,8 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
         if (!cancelled) setTextItems(items);
       })
       .catch((error: unknown) => {
-        if (!cancelled) console.error(`Failed to extract text for page ${pageNumber}`, error);
+        if (!cancelled)
+          console.error(`Failed to extract text for page ${pageNumber}`, error);
       });
     return () => {
       cancelled = true;
@@ -175,11 +176,7 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
       className="relative mx-auto my-2 shadow-lg ring-1 ring-border"
     >
       <canvas ref={canvasRef} className="block bg-white" />
-      <div
-        ref={textLayerRef}
-        className="pdf-text-layer"
-        aria-hidden="true"
-      />
+      <div ref={textLayerRef} className="pdf-text-layer" aria-hidden="true" />
       {!rendered && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-muted"

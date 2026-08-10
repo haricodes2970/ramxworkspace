@@ -38,9 +38,7 @@ function ThumbnailGrid({ onSelect }: { onSelect: (page: number) => void }) {
 
 export function PdfThumbnails() {
   const thumbnailsOpen = usePdfViewerStore((state) => state.thumbnailsOpen);
-  const mobileThumbsOpen = usePdfViewerStore(
-    (state) => state.mobileThumbsOpen,
-  );
+  const mobileThumbsOpen = usePdfViewerStore((state) => state.mobileThumbsOpen);
   const setMobileThumbsOpen = usePdfViewerStore(
     (state) => state.setMobileThumbsOpen,
   );

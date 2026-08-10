@@ -2,6 +2,7 @@
 
 import type { PDFPageProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PdfAnnotationOverlay } from "@/features/pdf/components/pdf-annotation-overlay";
 import { getPageTextItems } from "@/features/pdf/lib/pdf-search";
 import {
   renderPdfTextLayer,
@@ -177,6 +178,7 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
     >
       <canvas ref={canvasRef} className="block bg-white" />
       <div ref={textLayerRef} className="pdf-text-layer" aria-hidden="true" />
+      <PdfAnnotationOverlay pageNumber={pageNumber} />
       {!rendered && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-muted"

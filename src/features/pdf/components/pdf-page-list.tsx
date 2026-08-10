@@ -2,19 +2,28 @@
 
 import { useEffect, useRef } from "react";
 import { PdfPage } from "@/features/pdf/components/pdf-page";
-import { setPdfContainerWidthGetter } from "@/features/pdf/lib/pdf-layout";
+import {
+  fitPdfToWidth,
+  setPdfContainerWidthGetter,
+} from "@/features/pdf/lib/pdf-layout";
 import { setPdfScrollHandler } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
 export function PdfPageList() {
   const containerRef = useRef<HTMLDivElement>(null);
   const numPages = usePdfViewerStore((state) => state.numPages);
+  const doc = usePdfViewerStore((state) => state.doc);
   const setCurrentPage = usePdfViewerStore((state) => state.setCurrentPage);
+  const setScale = usePdfViewerStore((state) => state.setScale);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     setPdfContainerWidthGetter(() => container.clientWidth);
+
+    if (doc && container.clientWidth < 640) {
+      void fitPdfToWidth(doc, setScale);
+    }
 
     const ratios = new Map<number, number>();
 
@@ -59,7 +68,7 @@ export function PdfPageList() {
       setPdfScrollHandler(null);
       setPdfContainerWidthGetter(null);
     };
-  }, [numPages, setCurrentPage]);
+  }, [numPages, doc, setScale, setCurrentPage]);
 
   return (
     <div

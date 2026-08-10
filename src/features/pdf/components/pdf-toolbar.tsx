@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
-import { getPdfContainerWidth } from "@/features/pdf/lib/pdf-layout";
+import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
@@ -76,13 +76,9 @@ export function PdfToolbar() {
   const atFirst = currentPage <= 1;
   const atLast = currentPage >= numPages;
 
-  const fitToWidth = async () => {
+  const fitToWidth = () => {
     if (!doc) return;
-    const firstPage = await doc.getPage(1);
-    const pageWidth = firstPage.getViewport({ scale: 1 }).width;
-    const containerWidth = getPdfContainerWidth();
-    const fitted = (containerWidth - 48) / pageWidth;
-    setScale(fitted);
+    void fitPdfToWidth(doc, setScale);
   };
 
   const toggleThumbnailPanel = () => {

@@ -30,12 +30,12 @@ type AnnotationStore = {
   clearSelection: () => void;
   addAnnotation: (annotation: Annotation) => void;
   addRectAnnotation: (
-    page: number,
+    page: string,
     type: "highlight" | "underline" | "strikeout",
     rects: FractionRect[],
   ) => string | null;
-  addTextAnnotation: (page: number, position: FractionPoint) => string | null;
-  addNoteAnnotation: (page: number, position: FractionPoint) => string | null;
+  addTextAnnotation: (page: string, position: FractionPoint) => string | null;
+  addNoteAnnotation: (page: string, position: FractionPoint) => string | null;
   updateAnnotation: (
     id: string,
     patch: Partial<Annotation>,

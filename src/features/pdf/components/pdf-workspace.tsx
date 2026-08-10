@@ -7,6 +7,7 @@ import { PdfThumbnails } from "@/features/pdf/components/pdf-thumbnails";
 import { PdfToolbar } from "@/features/pdf/components/pdf-toolbar";
 import { PdfUploader } from "@/features/pdf/components/pdf-uploader";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
+import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { Button } from "@/components/ui/button";
 
 function pdfErrorMessage(error: unknown): string {
@@ -32,6 +33,13 @@ export function PdfWorkspace() {
   const setReady = usePdfViewerStore((state) => state.setReady);
   const setError = usePdfViewerStore((state) => state.setError);
   const closeDocument = usePdfViewerStore((state) => state.closeDocument);
+  const initPages = usePdfPagesStore((state) => state.initPages);
+  const clearPages = usePdfPagesStore((state) => state.clearPages);
+
+  const closeAll = () => {
+    closeDocument();
+    clearPages();
+  };
 
   const openPdf = async (file: File) => {
     setLoading();
@@ -40,6 +48,7 @@ export function PdfWorkspace() {
       const { getDocument } = await loadPdfJs();
       const doc = await getDocument({ data }).promise;
       setReady(doc, file.name, file.size);
+      initPages(doc.numPages);
     } catch (caught) {
       setError(pdfErrorMessage(caught));
     }
@@ -76,7 +85,7 @@ export function PdfWorkspace() {
             </div>
             <h2 className="text-lg font-semibold">Could not open PDF</h2>
             <p className="text-sm leading-6 text-muted-foreground">{error}</p>
-            <Button type="button" onClick={closeDocument} className="mt-2">
+            <Button type="button" onClick={closeAll} className="mt-2">
               Choose another file
             </Button>
           </div>
@@ -94,12 +103,7 @@ export function PdfWorkspace() {
             {numPages} page{numPages === 1 ? "" : "s"}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={closeDocument}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={closeAll}>
           <X className="size-4" aria-hidden="true" />
           Close PDF
         </Button>

@@ -15,10 +15,12 @@ import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 const MAX_DPR = 2;
 
 type PdfPageProps = {
-  pageNumber: number;
+  pageId: string;
+  sourcePage: number;
+  displayIndex: number;
 };
 
-export function PdfPage({ pageNumber }: PdfPageProps) {
+export function PdfPage({ pageId, sourcePage, displayIndex }: PdfPageProps) {
   const doc = usePdfViewerStore((state) => state.doc);
   const scale = usePdfViewerStore((state) => state.scale);
   const searchMatches = usePdfViewerStore((state) => state.searchMatches);
@@ -46,7 +48,7 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
   const pageMatches = useMemo(
     () =>
       searchMatches
-        .filter((match) => match.page === pageNumber)
+        .filter((match) => match.page === sourcePage)
         .map((match) => ({
           itemIndex: match.itemIndex,
           start: match.start,
@@ -55,30 +57,33 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
             searchResultIndex >= 0 &&
             searchMatches[searchResultIndex] === match,
         })),
-    [searchMatches, searchResultIndex, pageNumber],
+    [searchMatches, searchResultIndex, sourcePage],
   );
 
   useEffect(() => {
     if (!doc) return;
     let cancelled = false;
-    doc.getPage(pageNumber).then(
+    doc.getPage(sourcePage).then(
       (loadedPage) => {
         if (!cancelled) setPage(loadedPage);
       },
       () => undefined,
     );
-    getPageTextItems(doc, pageNumber)
+    getPageTextItems(doc, sourcePage)
       .then((items) => {
         if (!cancelled) setTextItems(items);
       })
       .catch((error: unknown) => {
         if (!cancelled)
-          console.error(`Failed to extract text for page ${pageNumber}`, error);
+          console.error(
+            `Failed to extract text for page ${displayIndex}`,
+            error,
+          );
       });
     return () => {
       cancelled = true;
     };
-  }, [doc, pageNumber]);
+  }, [doc, sourcePage, displayIndex]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -141,10 +146,10 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
         !(error instanceof Error) ||
         error.name !== "RenderingCancelledException"
       ) {
-        console.error(`Failed to render page ${pageNumber}`, error);
+        console.error(`Failed to render page ${displayIndex}`, error);
       }
     }
-  }, [page, scale, pageNumber]);
+  }, [page, scale, displayIndex]);
 
   useEffect(() => {
     if (!page || !inView) return;
@@ -180,7 +185,7 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
   return (
     <div
       ref={containerRef}
-      data-page={pageNumber}
+      data-page={displayIndex}
       className="relative mx-auto my-2 shadow-lg ring-1 ring-border"
     >
       <canvas ref={canvasRef} className="block bg-white" />
@@ -189,14 +194,14 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
         className={cn("pdf-text-layer", textToolActive && "text-interactive")}
         aria-hidden="true"
       />
-      <PdfAnnotationOverlay pageNumber={pageNumber} />
+      <PdfAnnotationOverlay pageId={pageId} />
       {!rendered && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-muted"
           aria-hidden="true"
         >
           <span className="text-xs text-muted-foreground">
-            Page {pageNumber}
+            Page {displayIndex}
           </span>
         </div>
       )}

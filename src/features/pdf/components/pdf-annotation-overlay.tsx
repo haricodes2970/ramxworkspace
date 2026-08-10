@@ -22,7 +22,7 @@ import type {
 } from "@/features/pdf/types/annotation";
 
 type PdfAnnotationOverlayProps = {
-  pageNumber: number;
+  pageId: string;
 };
 
 type PageSize = { width: number; height: number };
@@ -275,9 +275,7 @@ function NoteShape({
   );
 }
 
-export function PdfAnnotationOverlay({
-  pageNumber,
-}: PdfAnnotationOverlayProps) {
+export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState<PageSize>({ width: 0, height: 0 });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -315,8 +313,8 @@ export function PdfAnnotationOverlay({
   const endUndoGroup = useAnnotationStore((state) => state.endUndoGroup);
 
   const pageAnnotations = useMemo(
-    () => annotations[pageNumber] ?? [],
-    [annotations, pageNumber],
+    () => annotations[pageId] ?? [],
+    [annotations, pageId],
   );
   const selectedAnnotation = useMemo(
     () =>
@@ -343,11 +341,11 @@ export function PdfAnnotationOverlay({
     drawingRef.current = false;
     draggingRef.current = null;
     setDraftPoints(null);
-  }, [activeTool, pageNumber]);
+  }, [activeTool, pageId]);
 
   useEffect(() => {
     setEditingId(null);
-  }, [pageNumber]);
+  }, [pageId]);
 
   const rootPointerEvents =
     activeTool === "pen" || activeTool === "text" || activeTool === "note"
@@ -391,7 +389,7 @@ export function PdfAnnotationOverlay({
       addAnnotation({
         id,
         type: "draw",
-        page: pageNumber,
+        page: pageId,
         color: DEFAULT_COLORS.draw,
         points: draftPoints,
         strokeWidth: PEN_WIDTH_PX / (pageSize.height || 1),
@@ -408,10 +406,10 @@ export function PdfAnnotationOverlay({
       fractionPointFromEvent(event, overlay.getBoundingClientRect()),
     );
     if (activeTool === "text") {
-      const id = addTextAnnotation(pageNumber, point);
+      const id = addTextAnnotation(pageId, point);
       if (id) setEditingId(id);
     } else {
-      const id = addNoteAnnotation(pageNumber, point);
+      const id = addNoteAnnotation(pageId, point);
       if (id) setEditingId(id);
     }
   };
@@ -531,7 +529,7 @@ export function PdfAnnotationOverlay({
 
       if (rects.length === 0) return;
       selection.removeAllRanges();
-      addRectAnnotation(pageNumber, activeTool, rects);
+      addRectAnnotation(pageId, activeTool, rects);
     };
 
     document.addEventListener("mouseup", captureTextSelection);
@@ -540,7 +538,7 @@ export function PdfAnnotationOverlay({
       document.removeEventListener("mouseup", captureTextSelection);
       document.removeEventListener("touchend", captureTextSelection);
     };
-  }, [activeTool, pageNumber, addRectAnnotation]);
+  }, [activeTool, pageId, addRectAnnotation]);
 
   return (
     <div

@@ -8,11 +8,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
+import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 import { PdfThumbnail } from "@/features/pdf/components/pdf-thumbnail";
 
 function ThumbnailGrid({ onSelect }: { onSelect: (page: number) => void }) {
-  const numPages = usePdfViewerStore((state) => state.numPages);
+  const pages = usePdfPagesStore((state) => state.pages);
 
   const selectPage = (page: number) => {
     scrollToPdfPage(page);
@@ -25,10 +26,12 @@ function ThumbnailGrid({ onSelect }: { onSelect: (page: number) => void }) {
       role="navigation"
       aria-label="Page thumbnails"
     >
-      {Array.from({ length: numPages }, (_, index) => (
+      {pages.map((entry, index) => (
         <PdfThumbnail
-          key={index + 1}
-          pageNumber={index + 1}
+          key={entry.id}
+          pageId={entry.id}
+          sourcePage={entry.sourcePage}
+          displayIndex={index + 1}
           onSelect={selectPage}
         />
       ))}

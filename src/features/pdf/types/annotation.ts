@@ -30,7 +30,7 @@ export type FractionPoint = {
 type AnnotationBase = {
   id: string;
   type: AnnotationType;
-  page: number;
+  page: string;
   color: string;
 };
 
@@ -64,7 +64,7 @@ export type Annotation =
   | TextAnnotation
   | NoteAnnotation;
 
-export type AnnotationsByPage = Record<number, Annotation[]>;
+export type AnnotationsByPage = Record<string, Annotation[]>;
 
 export const DEFAULT_COLORS: Record<AnnotationType, string> = {
   highlight: "#f5c518",

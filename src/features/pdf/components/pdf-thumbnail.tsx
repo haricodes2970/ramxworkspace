@@ -3,19 +3,27 @@
 import type { PDFPageProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
 const THUMB_WIDTH = 132;
 const MAX_DPR = 2;
 
 type PdfThumbnailProps = {
-  pageNumber: number;
+  pageId: string;
+  sourcePage: number;
+  displayIndex: number;
   onSelect: (page: number) => void;
 };
 
-export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
+export function PdfThumbnail({
+  pageId,
+  sourcePage,
+  displayIndex,
+  onSelect,
+}: PdfThumbnailProps) {
   const doc = usePdfViewerStore((state) => state.doc);
-  const currentPage = usePdfViewerStore((state) => state.currentPage);
+  const currentPageId = usePdfPagesStore((state) => state.currentPageId);
 
   const containerRef = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,7 +36,7 @@ export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
   useEffect(() => {
     if (!doc) return;
     let cancelled = false;
-    doc.getPage(pageNumber).then(
+    doc.getPage(sourcePage).then(
       (loadedPage) => {
         if (!cancelled) setPage(loadedPage);
       },
@@ -37,7 +45,7 @@ export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
     return () => {
       cancelled = true;
     };
-  }, [doc, pageNumber]);
+  }, [doc, sourcePage]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -89,10 +97,10 @@ export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
           !(error instanceof Error) ||
           error.name !== "RenderingCancelledException"
         ) {
-          console.error(`Failed to render thumbnail ${pageNumber}`, error);
+          console.error(`Failed to render thumbnail ${displayIndex}`, error);
         }
       });
-  }, [page, inView, rendered, pageNumber]);
+  }, [page, inView, rendered, displayIndex]);
 
   useEffect(() => {
     return () => {
@@ -101,15 +109,15 @@ export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
     };
   }, []);
 
-  const isCurrent = pageNumber === currentPage;
+  const isCurrent = pageId === currentPageId;
 
   return (
     <button
       ref={containerRef}
       type="button"
-      aria-label={`Go to page ${pageNumber}`}
+      aria-label={`Go to page ${displayIndex}`}
       aria-current={isCurrent ? "page" : undefined}
-      onClick={() => onSelect(pageNumber)}
+      onClick={() => onSelect(displayIndex)}
       className={cn(
         "flex flex-col items-center gap-1.5 rounded-md border border-transparent p-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
         isCurrent && "border-ring bg-ring/10",
@@ -119,12 +127,12 @@ export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
         <canvas ref={canvasRef} className="block bg-white" />
         {!rendered && (
           <span className="px-2 py-4 text-xs text-muted-foreground">
-            {pageNumber}
+            {displayIndex}
           </span>
         )}
       </div>
       <span className="text-xs tabular-nums text-muted-foreground">
-        {pageNumber}
+        {displayIndex}
       </span>
     </button>
   );

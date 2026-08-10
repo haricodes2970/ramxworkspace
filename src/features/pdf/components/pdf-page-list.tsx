@@ -7,13 +7,15 @@ import {
   setPdfContainerWidthGetter,
 } from "@/features/pdf/lib/pdf-layout";
 import { setPdfScrollHandler } from "@/features/pdf/lib/pdf-scroll";
+import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
 export function PdfPageList() {
   const containerRef = useRef<HTMLDivElement>(null);
   const numPages = usePdfViewerStore((state) => state.numPages);
   const doc = usePdfViewerStore((state) => state.doc);
-  const setCurrentPage = usePdfViewerStore((state) => state.setCurrentPage);
+  const pages = usePdfPagesStore((state) => state.pages);
+  const setCurrentPage = usePdfPagesStore((state) => state.setCurrentPage);
   const setScale = usePdfViewerStore((state) => state.setScale);
 
   useEffect(() => {
@@ -45,7 +47,10 @@ export function PdfPageList() {
           }
         }
 
-        if (mostVisible > 0) setCurrentPage(mostVisible);
+        if (mostVisible > 0) {
+          const entry = pages[mostVisible - 1];
+          if (entry) setCurrentPage(entry.id);
+        }
       },
       { root: container, threshold: [0, 0.1, 0.5, 0.9] },
     );
@@ -66,15 +71,20 @@ export function PdfPageList() {
       setPdfScrollHandler(null);
       setPdfContainerWidthGetter(null);
     };
-  }, [numPages, doc, setScale, setCurrentPage]);
+  }, [numPages, doc, setScale, setCurrentPage, pages]);
 
   return (
     <div
       ref={containerRef}
       className="flex min-h-0 flex-1 flex-col overflow-auto bg-muted/30 p-4 sm:p-6"
     >
-      {Array.from({ length: numPages }, (_, index) => (
-        <PdfPage key={index + 1} pageNumber={index + 1} />
+      {pages.map((entry, index) => (
+        <PdfPage
+          key={entry.id}
+          pageId={entry.id}
+          sourcePage={entry.sourcePage}
+          displayIndex={index + 1}
+        />
       ))}
     </div>
   );

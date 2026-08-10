@@ -77,7 +77,11 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
 
   setLoading: () => set({ status: "loading", error: null }),
   setError: (message) => set({ status: "error", error: message }),
-  setReady: (doc, fileName, fileSize) =>
+  setReady: (doc, fileName, fileSize) => {
+    const previous = get().doc;
+    if (previous && previous !== doc) {
+      void previous.destroy();
+    }
     set({
       status: "ready",
       error: null,
@@ -90,8 +94,13 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       searchQuery: "",
       searchMatches: [],
       searchResultIndex: -1,
-    }),
-  closeDocument: () =>
+    });
+  },
+  closeDocument: () => {
+    const current = get().doc;
+    if (current) {
+      void current.destroy();
+    }
     set({
       status: "idle",
       error: null,
@@ -107,7 +116,8 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       searchQuery: "",
       searchMatches: [],
       searchResultIndex: -1,
-    }),
+    });
+  },
   setScale: (scale) => set({ scale: clampScale(scale) }),
   zoomIn: () => set({ scale: clampScale(get().scale * ZOOM_STEP) }),
   zoomOut: () => set({ scale: clampScale(get().scale / ZOOM_STEP) }),
@@ -132,11 +142,13 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
   runSearch: async (query) => {
     const doc = get().doc;
     const trimmed = query.trim();
+    const searchToken = (get().searchQuery = query);
     if (!doc || !trimmed) {
       set({ searchQuery: query, searchMatches: [], searchResultIndex: -1 });
       return;
     }
     const matches = await findPdfMatches(doc, trimmed);
+    if (get().doc !== doc || get().searchQuery !== searchToken) return;
     set({
       searchQuery: query,
       searchMatches: matches,

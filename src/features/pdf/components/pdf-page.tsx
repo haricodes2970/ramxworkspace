@@ -53,12 +53,19 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
   useEffect(() => {
     if (!doc) return;
     let cancelled = false;
-    doc.getPage(pageNumber).then((loadedPage) => {
-      if (!cancelled) setPage(loadedPage);
-    });
-    getPageTextItems(doc, pageNumber).then((items) => {
-      if (!cancelled) setTextItems(items);
-    });
+    doc.getPage(pageNumber).then(
+      (loadedPage) => {
+        if (!cancelled) setPage(loadedPage);
+      },
+      () => undefined,
+    );
+    getPageTextItems(doc, pageNumber)
+      .then((items) => {
+        if (!cancelled) setTextItems(items);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) console.error(`Failed to extract text for page ${pageNumber}`, error);
+      });
     return () => {
       cancelled = true;
     };

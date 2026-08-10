@@ -28,9 +28,12 @@ export function PdfThumbnail({ pageNumber, onSelect }: PdfThumbnailProps) {
   useEffect(() => {
     if (!doc) return;
     let cancelled = false;
-    doc.getPage(pageNumber).then((loadedPage) => {
-      if (!cancelled) setPage(loadedPage);
-    });
+    doc.getPage(pageNumber).then(
+      (loadedPage) => {
+        if (!cancelled) setPage(loadedPage);
+      },
+      () => undefined,
+    );
     return () => {
       cancelled = true;
     };

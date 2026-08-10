@@ -231,7 +231,8 @@ function drawTextOrNoteAnnotation(
     const content = annotation.content.trim();
     if (!content) return;
     const size = annotation.fontSize * pageSpaceHeight;
-    const lines = content.split("\n");
+    const maxWidth = Math.max(width - pdfPoint.x, size * 4);
+    const lines = wrapPdfText(helvetica, content, size, maxWidth);
     let baseline = pdfPoint.y - size * 0.8;
     for (const line of lines) {
       if (line.trim()) {
@@ -322,6 +323,30 @@ function roundCoord(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
+function wrapPdfText(
+  font: PDFFont,
+  text: string,
+  size: number,
+  maxWidth: number,
+): string[] {
+  const lines: string[] = [];
+  for (const rawLine of text.split("\n")) {
+    const words = rawLine.split(" ");
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+        current = candidate;
+      } else {
+        if (current) lines.push(current);
+        current = word;
+      }
+    }
+    lines.push(current);
+  }
+  return lines;
+}
+
 function drawRectAnnotation(
   page: PDFPage,
   annotation: RectAnnotation,
@@ -333,6 +358,7 @@ function drawRectAnnotation(
   const color = hexToRgb(annotation.color, rgb);
 
   for (const rect of annotation.rects) {
+    if (rect.w <= 0 || rect.h <= 0) continue;
     const display = transformFractionRect(rect, userRotation);
     const pdfRect = fractionRectToPdfRect(
       display,

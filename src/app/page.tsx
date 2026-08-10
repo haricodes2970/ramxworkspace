@@ -1,10 +1,10 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { WorkspacePlaceholder } from "@/features/workspace/components/workspace-placeholder";
+import { PdfWorkspace } from "@/features/pdf/components/pdf-workspace";
 
 export default function Home() {
   return (
     <AppShell>
-      <WorkspacePlaceholder />
+      <PdfWorkspace />
     </AppShell>
   );
 }

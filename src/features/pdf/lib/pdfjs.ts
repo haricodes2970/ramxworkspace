@@ -1,7 +1,14 @@
 "use client";
 
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+type PdfJsModule = typeof import("pdfjs-dist");
 
-GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+let workerConfigured = false;
 
-export { getDocument };
+export async function loadPdfJs(): Promise<PdfJsModule> {
+  const pdfjs = await import("pdfjs-dist");
+  if (!workerConfigured) {
+    pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    workerConfigured = true;
+  }
+  return pdfjs;
+}

@@ -146,8 +146,20 @@ function TextShape({
   onCommit: (id: string, content: string) => void;
   onSelect: (id: string) => void;
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const editing = editingId === annotation.id;
   const interactive = tool === "select" || editing;
+
+  useEffect(() => {
+    if (editing && contentRef.current) {
+      contentRef.current.focus();
+      const range = document.createRange();
+      range.selectNodeContents(contentRef.current);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+  }, [editing]);
 
   return (
     <div
@@ -171,6 +183,7 @@ function TextShape({
       }}
     >
       <div
+        ref={contentRef}
         contentEditable={editing}
         suppressContentEditableWarning
         spellCheck={false}
@@ -180,7 +193,9 @@ function TextShape({
             ? "min-w-16 rounded-sm border border-dashed border-ring bg-background px-1 outline-none"
             : "px-1"
         }
-        onBlur={(event) => onCommit(annotation.id, event.currentTarget.textContent ?? "")}
+        onBlur={(event) =>
+          onCommit(annotation.id, event.currentTarget.textContent ?? "")
+        }
       >
         {annotation.content}
       </div>
@@ -249,6 +264,12 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     (state) => state.addRectAnnotation,
   );
   const addAnnotation = useAnnotationStore((state) => state.addAnnotation);
+  const addTextAnnotation = useAnnotationStore(
+    (state) => state.addTextAnnotation,
+  );
+  const addNoteAnnotation = useAnnotationStore(
+    (state) => state.addNoteAnnotation,
+  );
 
   const pageAnnotations = useMemo(
     () => annotations[pageNumber] ?? [],
@@ -326,6 +347,21 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     setDraftPoints(null);
   };
 
+  const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (activeTool !== "text" && activeTool !== "note") return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    const point = clampFractionPoint(
+      fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+    );
+    if (activeTool === "text") {
+      const id = addTextAnnotation(pageNumber, point);
+      if (id) setEditingId(id);
+    } else {
+      addNoteAnnotation(pageNumber, point);
+    }
+  };
+
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -384,6 +420,7 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onClick={handleOverlayClick}
     >
       <svg
         className="absolute inset-0 h-full w-full"

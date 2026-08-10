@@ -21,6 +21,23 @@ export type PdfExportResult = {
   pageCount: number;
 };
 
+export function deriveExportFileName(originalFileName: string): string {
+  const base = originalFileName.replace(/\.pdf$/i, "") || "document";
+  return `${base}-edited.pdf`;
+}
+
+export function sanitizeExportFileName(
+  input: string,
+  originalFileName: string,
+): string {
+  const cleaned = input
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, " ");
+  if (!cleaned) return deriveExportFileName(originalFileName);
+  return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
+}
+
 /**
  * Convert a fraction relative to the displayed page box (top-left origin)
  * into PDF MediaBox coordinates (bottom-left origin) for the given total

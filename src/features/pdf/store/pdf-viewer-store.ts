@@ -22,6 +22,7 @@ type PdfViewerState = {
   thumbnailsOpen: boolean;
   mobileThumbsOpen: boolean;
   searchOpen: boolean;
+  exportOpen: boolean;
   searchQuery: string;
   searchMatches: PdfSearchMatch[];
   searchResultIndex: number;
@@ -44,6 +45,7 @@ type PdfViewerState = {
   setThumbnailsOpen: (open: boolean) => void;
   setMobileThumbsOpen: (open: boolean) => void;
   setSearchOpen: (open: boolean) => void;
+  setExportOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setSearchState: (query: string, matches: PdfSearchMatch[]) => void;
   setSearchResultIndex: (index: number) => void;
@@ -78,6 +80,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
   thumbnailsOpen: true,
   mobileThumbsOpen: false,
   searchOpen: false,
+  exportOpen: false,
   searchQuery: "",
   searchMatches: [],
   searchResultIndex: -1,
@@ -122,6 +125,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       thumbnailsOpen: true,
       mobileThumbsOpen: false,
       searchOpen: false,
+      exportOpen: false,
       searchQuery: "",
       searchMatches: [],
       searchResultIndex: -1,
@@ -137,6 +141,7 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
   setThumbnailsOpen: (open) => set({ thumbnailsOpen: open }),
   setMobileThumbsOpen: (open) => set({ mobileThumbsOpen: open }),
   setSearchOpen: (open) => set({ searchOpen: open }),
+  setExportOpen: (open) => set({ exportOpen: open }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSearchState: (query, matches) =>
     set({ searchQuery: query, searchMatches: matches, searchResultIndex: 0 }),

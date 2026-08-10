@@ -3,6 +3,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   Maximize,
   PanelLeftClose,
   PanelLeftOpen,
@@ -22,6 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
+import { PdfExportBar } from "@/features/pdf/components/pdf-export-bar";
 import { PdfConfirmButton } from "@/features/pdf/components/pdf-confirm-button";
 import { PdfToolsGroup } from "@/features/pdf/components/pdf-tools-group";
 import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
@@ -46,6 +48,8 @@ export function PdfToolbar() {
   );
   const searchOpen = usePdfViewerStore((state) => state.searchOpen);
   const setSearchOpen = usePdfViewerStore((state) => state.setSearchOpen);
+  const exportOpen = usePdfViewerStore((state) => state.exportOpen);
+  const setExportOpen = usePdfViewerStore((state) => state.setExportOpen);
   const undo = useAnnotationStore((state) => state.undo);
   const redo = useAnnotationStore((state) => state.redo);
   const selectedId = useAnnotationStore((state) => state.selectedId);
@@ -350,6 +354,24 @@ export function PdfToolbar() {
       </div>
 
       <div className="flex items-center gap-1">
+        {exportOpen ? (
+          <PdfExportBar />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Export PDF"
+                onClick={() => setExportOpen(true)}
+              >
+                <Download className="size-5" aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Export PDF</TooltipContent>
+          </Tooltip>
+        )}
         {searchOpen ? (
           <PdfSearchBar />
         ) : (

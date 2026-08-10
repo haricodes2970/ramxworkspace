@@ -275,7 +275,9 @@ function NoteShape({
   );
 }
 
-export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) {
+export function PdfAnnotationOverlay({
+  pageNumber,
+}: PdfAnnotationOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState<PageSize>({ width: 0, height: 0 });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -290,8 +292,12 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
   const activeTool = useAnnotationStore((state) => state.activeTool);
   const selectedId = useAnnotationStore((state) => state.selectedId);
   const annotations = useAnnotationStore((state) => state.annotations);
-  const selectAnnotation = useAnnotationStore((state) => state.selectAnnotation);
-  const updateAnnotation = useAnnotationStore((state) => state.updateAnnotation);
+  const selectAnnotation = useAnnotationStore(
+    (state) => state.selectAnnotation,
+  );
+  const updateAnnotation = useAnnotationStore(
+    (state) => state.updateAnnotation,
+  );
   const deleteAnnotation = useAnnotationStore(
     (state) => state.deleteAnnotation,
   );
@@ -410,7 +416,9 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     }
   };
 
-  const handleSelectPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handleSelectPointerDown = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
     if (activeTool !== "select") return;
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -438,7 +446,9 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     overlay.setPointerCapture(event.pointerId);
   };
 
-  const handleSelectPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handleSelectPointerMove = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
     const drag = draggingRef.current;
     const overlay = overlayRef.current;
     if (!drag || !overlay || activeTool !== "select") return;
@@ -490,7 +500,11 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     if (!overlay) return;
 
     const captureTextSelection = () => {
-      if (activeTool !== "highlight" && activeTool !== "underline" && activeTool !== "strikeout") {
+      if (
+        activeTool !== "highlight" &&
+        activeTool !== "underline" &&
+        activeTool !== "strikeout"
+      ) {
         return;
       }
       const selection = window.getSelection();
@@ -563,7 +577,11 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
         preserveAspectRatio="none"
       >
         {pageAnnotations.map((annotation) => {
-          if (annotation.type === "highlight" || annotation.type === "underline" || annotation.type === "strikeout") {
+          if (
+            annotation.type === "highlight" ||
+            annotation.type === "underline" ||
+            annotation.type === "strikeout"
+          ) {
             return (
               <RectShapes
                 key={annotation.id}
@@ -641,10 +659,10 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
       })}
 
       {selectedAnnotation && (
-          <button
-            type="button"
-            aria-label="Delete annotation"
-            className="absolute flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-xs text-destructive shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+        <button
+          type="button"
+          aria-label="Delete annotation"
+          className="absolute flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-xs text-destructive shadow-md focus-visible:ring-2 focus-visible:ring-ring"
           style={{
             left: `${deleteButtonPosition(selectedAnnotation)[0] * 100}%`,
             top: `${deleteButtonPosition(selectedAnnotation)[1] * 100}%`,

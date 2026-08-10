@@ -74,10 +74,7 @@ export function PdfToolbar() {
         return;
       }
 
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key.toLowerCase() === "y"
-      ) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
         event.preventDefault();
         redo();
         return;

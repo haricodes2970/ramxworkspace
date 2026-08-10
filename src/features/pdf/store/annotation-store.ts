@@ -165,7 +165,9 @@ export const useAnnotationStore = create<AnnotationStore>()((set, get) => ({
   deleteAnnotation: (id) => {
     const current = cloneSnapshots(get().annotations);
     for (const pageAnnotations of Object.values(current)) {
-      const index = pageAnnotations.findIndex((annotation) => annotation.id === id);
+      const index = pageAnnotations.findIndex(
+        (annotation) => annotation.id === id,
+      );
       if (index !== -1) {
         pageAnnotations.splice(index, 1);
         break;

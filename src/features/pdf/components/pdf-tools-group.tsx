@@ -69,7 +69,11 @@ export function PdfToolsGroup() {
       <ToolButton tool="select" label="Select" icon={MousePointer2} />
       <ToolButton tool="highlight" label="Highlight" icon={Highlighter} />
       <ToolButton tool="underline" label="Underline" icon={Underline} />
-      <ToolButton tool="strikeout" label="Strike through" icon={Strikethrough} />
+      <ToolButton
+        tool="strikeout"
+        label="Strike through"
+        icon={Strikethrough}
+      />
       <ToolButton tool="pen" label="Pen" icon={Pen} />
       <ToolButton tool="text" label="Text box" icon={Type} />
       <ToolButton tool="note" label="Sticky note" icon={StickyNote} />

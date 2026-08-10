@@ -3,6 +3,7 @@
 import { FileText, Loader2, X } from "lucide-react";
 import { loadPdfJs } from "@/features/pdf/lib/pdfjs";
 import { PdfPageList } from "@/features/pdf/components/pdf-page-list";
+import { PdfToolbar } from "@/features/pdf/components/pdf-toolbar";
 import { PdfUploader } from "@/features/pdf/components/pdf-uploader";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,10 @@ export function PdfWorkspace() {
           Close PDF
         </Button>
       </div>
-      <PdfPageList />
+      <PdfToolbar />
+      <div className="flex min-h-0 flex-1">
+        <PdfPageList />
+      </div>
     </div>
   );
 }

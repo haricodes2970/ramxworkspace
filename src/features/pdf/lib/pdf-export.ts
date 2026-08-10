@@ -8,6 +8,7 @@ import {
 import type {
   Annotation,
   AnnotationsByPage,
+  DrawAnnotation,
   FractionPoint,
   FractionRect,
   RectAnnotation,
@@ -121,12 +122,48 @@ function drawAnnotation(
   rgb: (r: number, g: number, b: number) => Color,
 ) {
   if (annotation.type === "draw") {
+    drawDrawAnnotation(page, annotation, userRotation, totalRotation, rgb);
     return;
   }
   if (annotation.type === "text" || annotation.type === "note") {
     return;
   }
   drawRectAnnotation(page, annotation, userRotation, totalRotation, rgb);
+}
+
+function drawDrawAnnotation(
+  page: PDFPage,
+  annotation: DrawAnnotation,
+  userRotation: PageRotation,
+  totalRotation: PageRotation,
+  rgb: (r: number, g: number, b: number) => Color,
+) {
+  if (annotation.points.length < 2) return;
+  const { width, height } = page.getSize();
+  const pageSpaceHeight = userRotation % 180 === 0 ? height : width;
+  const points = annotation.points.map((point) => {
+    const display = transformFractionPoint(point, userRotation);
+    const pdf = fractionToPdfPoint(display, width, height, totalRotation);
+    return { x: roundCoord(pdf.x), y: roundCoord(pdf.y) };
+  });
+  const path = `M ${points[0].x} ${points[0].y} ${points
+    .slice(1)
+    .map((point) => `L ${point.x} ${point.y}`)
+    .join(" ")}`;
+  const color = hexToRgb(annotation.color, rgb);
+  page.drawSvgPath(path, {
+    x: 0,
+    y: 0,
+    color: rgb(1, 1, 1),
+    opacity: 0,
+    borderColor: color,
+    borderWidth: annotation.strokeWidth * pageSpaceHeight,
+    borderOpacity: 1,
+  });
+}
+
+function roundCoord(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }
 
 function drawRectAnnotation(

@@ -3,8 +3,12 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Maximize,
   PanelLeftClose,
   PanelLeftOpen,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,16 +18,23 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getPdfContainerWidth } from "@/features/pdf/lib/pdf-layout";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
 export function PdfToolbar() {
   const currentPage = usePdfViewerStore((state) => state.currentPage);
   const numPages = usePdfViewerStore((state) => state.numPages);
+  const scale = usePdfViewerStore((state) => state.scale);
+  const doc = usePdfViewerStore((state) => state.doc);
   const thumbnailsOpen = usePdfViewerStore((state) => state.thumbnailsOpen);
   const toggleThumbnails = usePdfViewerStore(
     (state) => state.toggleThumbnails,
   );
+  const zoomIn = usePdfViewerStore((state) => state.zoomIn);
+  const zoomOut = usePdfViewerStore((state) => state.zoomOut);
+  const resetZoom = usePdfViewerStore((state) => state.resetZoom);
+  const setScale = usePdfViewerStore((state) => state.setScale);
 
   const [pageInput, setPageInput] = useState(String(currentPage));
 
@@ -46,6 +57,15 @@ export function PdfToolbar() {
 
   const atFirst = currentPage <= 1;
   const atLast = currentPage >= numPages;
+
+  const fitToWidth = async () => {
+    if (!doc) return;
+    const firstPage = await doc.getPage(1);
+    const pageWidth = firstPage.getViewport({ scale: 1 }).width;
+    const containerWidth = getPdfContainerWidth();
+    const fitted = (containerWidth - 48) / pageWidth;
+    setScale(fitted);
+  };
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-background px-3 py-2 sm:px-4">
@@ -121,6 +141,84 @@ export function PdfToolbar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Next page</TooltipContent>
+        </Tooltip>
+      </div>
+
+      <div
+        className="ml-auto flex items-center gap-1"
+        role="group"
+        aria-label="Zoom controls"
+      >
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Fit to width"
+              onClick={fitToWidth}
+            >
+              <Maximize className="size-5" aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Fit to width</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Zoom out"
+              onClick={zoomOut}
+            >
+              <ZoomOut className="size-5" aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Zoom out</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label="Reset zoom to 100 percent"
+              onClick={resetZoom}
+              className="w-14 tabular-nums"
+            >
+              {Math.round(scale * 100)}%
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Reset zoom</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Zoom in"
+              onClick={zoomIn}
+            >
+              <ZoomIn className="size-5" aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Zoom in</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Reset zoom"
+              onClick={resetZoom}
+            >
+              <RotateCcw className="size-5" aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Reset zoom to 100%</TooltipContent>
         </Tooltip>
       </div>
     </div>

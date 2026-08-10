@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { PdfPage } from "@/features/pdf/components/pdf-page";
+import { setPdfContainerWidthGetter } from "@/features/pdf/lib/pdf-layout";
 import { setPdfScrollHandler } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
@@ -13,6 +14,7 @@ export function PdfPageList() {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    setPdfContainerWidthGetter(() => container.clientWidth);
 
     const ratios = new Map<number, number>();
 
@@ -55,6 +57,7 @@ export function PdfPageList() {
     return () => {
       observer.disconnect();
       setPdfScrollHandler(null);
+      setPdfContainerWidthGetter(null);
     };
   }, [numPages, setCurrentPage]);
 

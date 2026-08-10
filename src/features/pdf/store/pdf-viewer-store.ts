@@ -2,15 +2,12 @@
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { create } from "zustand";
+import {
+  findPdfMatches,
+  type PdfSearchMatch,
+} from "@/features/pdf/lib/pdf-search";
 
 export type PdfViewerStatus = "idle" | "loading" | "ready" | "error";
-
-export type PdfSearchMatch = {
-  page: number;
-  itemIndex: number;
-  start: number;
-  end: number;
-};
 
 type PdfViewerState = {
   status: PdfViewerStatus;
@@ -45,6 +42,9 @@ type PdfViewerState = {
   setSearchState: (query: string, matches: PdfSearchMatch[]) => void;
   setSearchResultIndex: (index: number) => void;
   clearSearch: () => void;
+  runSearch: (query: string) => Promise<void>;
+  nextMatch: () => void;
+  prevMatch: () => void;
 };
 
 export const MIN_SCALE = 0.25;
@@ -129,4 +129,31 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       searchResultIndex: -1,
       searchOpen: false,
     }),
+  runSearch: async (query) => {
+    const doc = get().doc;
+    const trimmed = query.trim();
+    if (!doc || !trimmed) {
+      set({ searchQuery: query, searchMatches: [], searchResultIndex: -1 });
+      return;
+    }
+    const matches = await findPdfMatches(doc, trimmed);
+    set({
+      searchQuery: query,
+      searchMatches: matches,
+      searchResultIndex: matches.length > 0 ? 0 : -1,
+    });
+  },
+  nextMatch: () => {
+    const { searchMatches, searchResultIndex } = get();
+    if (searchMatches.length === 0) return;
+    const next = (searchResultIndex + 1) % searchMatches.length;
+    set({ searchResultIndex: next });
+  },
+  prevMatch: () => {
+    const { searchMatches, searchResultIndex } = get();
+    if (searchMatches.length === 0) return;
+    const prev =
+      (searchResultIndex - 1 + searchMatches.length) % searchMatches.length;
+    set({ searchResultIndex: prev });
+  },
 }));

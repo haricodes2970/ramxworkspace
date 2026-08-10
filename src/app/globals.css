@@ -134,3 +134,29 @@
     @apply bg-primary text-primary-foreground;
   }
 }
+
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  color: transparent;
+  user-select: text;
+  z-index: 2;
+}
+
+.pdf-text-layer span {
+  position: absolute;
+  white-space: pre;
+  transform-origin: 0% 0%;
+  pointer-events: none;
+}
+
+.pdf-match {
+  background: rgb(255 213 79 / 0.55);
+  border-radius: 2px;
+}
+
+.pdf-match-current {
+  background: rgb(255 140 0 / 0.75);
+}

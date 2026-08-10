@@ -1,7 +1,12 @@
 "use client";
 
 import type { PDFPageProxy } from "pdfjs-dist";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getPageTextItems } from "@/features/pdf/lib/pdf-search";
+import {
+  renderPdfTextLayer,
+  type PdfTextItem,
+} from "@/features/pdf/lib/pdf-text-layer";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
 const MAX_DPR = 2;
@@ -13,22 +18,46 @@ type PdfPageProps = {
 export function PdfPage({ pageNumber }: PdfPageProps) {
   const doc = usePdfViewerStore((state) => state.doc);
   const scale = usePdfViewerStore((state) => state.scale);
+  const searchMatches = usePdfViewerStore((state) => state.searchMatches);
+  const searchResultIndex = usePdfViewerStore(
+    (state) => state.searchResultIndex,
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
   const renderVersionRef = useRef(0);
 
   const [page, setPage] = useState<PDFPageProxy | null>(null);
+  const [textItems, setTextItems] = useState<PdfTextItem[]>([]);
   const [inView, setInView] = useState(false);
   const [rendered, setRendered] = useState(false);
   const renderedScaleRef = useRef(0);
+
+  const pageMatches = useMemo(
+    () =>
+      searchMatches
+        .filter((match) => match.page === pageNumber)
+        .map((match) => ({
+          itemIndex: match.itemIndex,
+          start: match.start,
+          end: match.end,
+          current:
+            searchResultIndex >= 0 &&
+            searchMatches[searchResultIndex] === match,
+        })),
+    [searchMatches, searchResultIndex, pageNumber],
+  );
 
   useEffect(() => {
     if (!doc) return;
     let cancelled = false;
     doc.getPage(pageNumber).then((loadedPage) => {
       if (!cancelled) setPage(loadedPage);
+    });
+    getPageTextItems(doc, pageNumber).then((items) => {
+      if (!cancelled) setTextItems(items);
     });
     return () => {
       cancelled = true;
@@ -108,6 +137,24 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
   }, [page, inView, scale, renderPage]);
 
   useEffect(() => {
+    const layer = textLayerRef.current;
+    if (!layer || !page || textItems.length === 0) return;
+    const viewport = page.getViewport({ scale });
+    renderPdfTextLayer({
+      container: layer,
+      items: textItems,
+      viewport,
+      matches: pageMatches,
+    });
+
+    if (pageMatches.some((match) => match.current)) {
+      layer.querySelector<HTMLElement>(".pdf-match-current")?.scrollIntoView({
+        block: "center",
+      });
+    }
+  }, [page, textItems, scale, pageMatches]);
+
+  useEffect(() => {
     return () => {
       renderTaskRef.current?.cancel();
       renderTaskRef.current = null;
@@ -121,6 +168,11 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
       className="relative mx-auto my-2 shadow-lg ring-1 ring-border"
     >
       <canvas ref={canvasRef} className="block bg-white" />
+      <div
+        ref={textLayerRef}
+        className="pdf-text-layer"
+        aria-hidden="true"
+      />
       {!rendered && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-muted"

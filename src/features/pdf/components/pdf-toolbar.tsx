@@ -7,6 +7,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   RotateCcw,
+  Search,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
 import { getPdfContainerWidth } from "@/features/pdf/lib/pdf-layout";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
@@ -38,8 +40,21 @@ export function PdfToolbar() {
   const setMobileThumbsOpen = usePdfViewerStore(
     (state) => state.setMobileThumbsOpen,
   );
+  const searchOpen = usePdfViewerStore((state) => state.searchOpen);
+  const setSearchOpen = usePdfViewerStore((state) => state.setSearchOpen);
 
   const [pageInput, setPageInput] = useState(String(currentPage));
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setSearchOpen]);
 
   useEffect(() => {
     setPageInput(String(currentPage));
@@ -231,6 +246,27 @@ export function PdfToolbar() {
           </TooltipTrigger>
           <TooltipContent>Reset zoom to 100%</TooltipContent>
         </Tooltip>
+      </div>
+
+      <div className="flex items-center gap-1">
+        {searchOpen ? (
+          <PdfSearchBar />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Search in PDF"
+                onClick={() => setSearchOpen(true)}
+              >
+                <Search className="size-5" aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Search (Ctrl+F)</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );

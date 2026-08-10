@@ -2,7 +2,7 @@
 
 RamxWorkspace is a self-hosted, privacy-first document workspace. The long-term product direction is a browser-based workspace for PDFs, Word documents, Excel sheets, PowerPoint decks, images, and future AI-assisted document tools.
 
-This repository implements Phase 1 Foundation, Phase 2 (client-side PDF viewer), Phase 3 (annotation engine), and Phase 4 (page operations). No backend, no document uploads to third-party services: all PDF parsing and rendering happens locally in the browser.
+This repository implements Phase 1 Foundation, Phase 2 (client-side PDF viewer), Phase 3 (annotation engine), Phase 4 (page operations), and Phase 5 (PDF export). No backend, no document uploads to third-party services: all PDF parsing, rendering and export happens locally in the browser.
 
 ## Tech Stack
 
@@ -12,6 +12,8 @@ This repository implements Phase 1 Foundation, Phase 2 (client-side PDF viewer),
 - shadcn/ui
 - Zustand
 - Lucide React
+- PDF.js (viewing/rendering/search)
+- pdf-lib (client-side export)
 - ESLint
 - Prettier
 - Docker and Docker Compose
@@ -26,10 +28,11 @@ src/
     providers/          Root providers for theme and UI primitives
     ui/                 shadcn/ui primitives owned by this codebase
   features/
-    pdf/                Phases 2-4 client-side PDF viewer, annotation
-                        engine and page operations (uploader, viewer,
-                        thumbnails, search, annotation overlay/tools/
-                        stores, page identity store, libs)
+    pdf/                Phases 2-5 client-side PDF viewer, annotation
+                        engine, page operations and pdf-lib export
+                        (uploader, viewer, thumbnails, search,
+                        annotation overlay/tools/stores, page identity
+                        store, export service, libs)
   lib/                  Shared runtime configuration and helpers
   store/                Zustand stores for theme and workspace UI only
   types/                Shared TypeScript domain types
@@ -81,7 +84,8 @@ NEXT_PUBLIC_APP_STAGE=local
 - Phase 2: Client-side PDF viewer: upload/drag-drop, multi-page continuous rendering, navigation, zoom, fit-to-width, thumbnails, text search (Ctrl+F), graceful error handling, mobile drawer. ✅
 - Phase 3: Annotation engine: highlight, underline, strike-through, freehand pen, text boxes, sticky notes, selection, movement, editing, deletion, undo/redo (Ctrl+Z/Ctrl+Y), zoom-safe page-fraction coordinates, rotation-safe alignment. ✅
 - Phase 4: Page operations: per-page rotation (90/180/270/back), page deletion with two-step confirmation and annotation cleanup, thumbnail drag-and-drop reordering with keyboard/move-button alternatives, stable page identity so annotations follow page content, viewer sync, single-page safety. ✅
-- Phase 5: PDF export (pdf-lib).
+- Phase 5: PDF export: client-side pdf-lib flattening of page order, deletion, rotation and all annotations (highlight, underline, strike-through, freehand, text boxes, sticky notes), filename customization, loading/error/success states, exported-file validation before download. ✅
+- Phase 6: UX polish, accessibility refinement, keyboard shortcuts, performance refinement, loading/error polish.
 - Future: Word, Excel, PowerPoint, images, offline-first workflows, and AI-powered document tools.
 
 ## Privacy Stance

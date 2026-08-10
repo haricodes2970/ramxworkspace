@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RamxWorkspace
 
-## Getting Started
+RamxWorkspace is a self-hosted, privacy-first document workspace. The long-term product direction is a browser-based workspace for PDFs, Word documents, Excel sheets, PowerPoint decks, images, and future AI-assisted document tools.
 
-First, run the development server:
+This repository currently implements Phase 1 Foundation only. It intentionally does not include PDF upload, PDF viewing, annotation tools, editing, export, backend APIs, authentication, database code, or PDF libraries.
+
+## Tech Stack
+
+- Next.js 15 with App Router
+- TypeScript
+- Tailwind CSS v4
+- shadcn/ui
+- Zustand
+- Lucide React
+- ESLint
+- Prettier
+- Docker and Docker Compose
+
+## Folder Structure
+
+```txt
+src/
+  app/                  App Router entry points and global styles
+  components/
+    layout/             Application shell, header, sidebar, theme controls
+    providers/          Root providers for theme and UI primitives
+    ui/                 shadcn/ui primitives owned by this codebase
+  features/             Feature modules and future document areas
+  lib/                  Shared runtime configuration and helpers
+  store/                Zustand stores for theme and workspace UI only
+  types/                Shared TypeScript domain types
+public/                 Static assets
+```
+
+## Installation
+
+```bash
+npm install
+cp .env.example .env.local
+```
+
+## Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run type-check
+npm run format:check
+npm run build
+```
 
-## Learn More
+## Docker
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+docker compose up --build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app will be available at [http://localhost:3000](http://localhost:3000).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment Variables
 
-## Deploy on Vercel
+```txt
+NEXT_PUBLIC_APP_NAME=RamxWorkspace
+NEXT_PUBLIC_APP_STAGE=local
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Roadmap
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Phase 1: Production-ready foundation, responsive shell, theme support, Docker setup.
+- Phase 2: Client-side PDF viewer, upload flow, navigation, thumbnails, and PDF workspace basics.
+- Phase 3: Annotation tools, page operations, recent files, and export workflow.
+- Phase 4: Advanced PDF tools and optional self-hosted backend for heavy processing.
+- Future: Word, Excel, PowerPoint, images, offline-first workflows, and AI-powered document tools.
+
+## Privacy Stance
+
+The MVP is designed to stay local-first. Document handling should run in the browser whenever possible, and no backend should be introduced until a later phase explicitly needs one.

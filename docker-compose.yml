@@ -1,0 +1,14 @@
+services:
+  ramxworkspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ramxworkspace
+    environment:
+      NEXT_PUBLIC_APP_NAME: RamxWorkspace
+      NEXT_PUBLIC_APP_STAGE: production
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

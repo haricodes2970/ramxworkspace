@@ -45,9 +45,7 @@ export function fractionRectToPdfRect(
     { x: rect.x + rect.w, y: rect.y },
     { x: rect.x, y: rect.y + rect.h },
     { x: rect.x + rect.w, y: rect.y + rect.h },
-  ].map((corner) =>
-    fractionToPdfPoint(corner, width, height, totalRotation),
-  );
+  ].map((corner) => fractionToPdfPoint(corner, width, height, totalRotation));
   const xs = corners.map((corner) => corner.x);
   const ys = corners.map((corner) => corner.y);
   const x = Math.min(...xs);

@@ -5,6 +5,11 @@ import {
   clampFractionPoint,
   fractionPointFromEvent,
   fractionRectFromClientRect,
+  inverseRotation,
+  transformAnnotation,
+  transformFractionPoint,
+  transformFractionRect,
+  type PageRotation,
 } from "@/features/pdf/lib/annotation-geometry";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import {
@@ -23,6 +28,7 @@ import type {
 
 type PdfAnnotationOverlayProps = {
   pageId: string;
+  rotation: PageRotation;
 };
 
 type PageSize = { width: number; height: number };
@@ -134,7 +140,7 @@ function DrawShape({
 function TextShape({
   annotation,
   tool,
-  pageSize,
+  pageSpaceHeight,
   editingId,
   onStartEdit,
   onCommit,
@@ -142,7 +148,7 @@ function TextShape({
 }: {
   annotation: TextAnnotation;
   tool: string;
-  pageSize: PageSize;
+  pageSpaceHeight: number;
   editingId: string | null;
   onStartEdit: (id: string) => void;
   onCommit: (id: string, content: string) => void;
@@ -170,7 +176,7 @@ function TextShape({
       style={{
         left: `${annotation.position.x * 100}%`,
         top: `${annotation.position.y * 100}%`,
-        fontSize: `${annotation.fontSize * pageSize.height}px`,
+        fontSize: `${annotation.fontSize * pageSpaceHeight}px`,
         color: annotation.color,
         lineHeight: 1.2,
         pointerEvents: interactive ? "auto" : "none",
@@ -275,7 +281,10 @@ function NoteShape({
   );
 }
 
-export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
+export function PdfAnnotationOverlay({
+  pageId,
+  rotation,
+}: PdfAnnotationOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState<PageSize>({ width: 0, height: 0 });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -316,12 +325,21 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     () => annotations[pageId] ?? [],
     [annotations, pageId],
   );
+  const displayAnnotations = useMemo(
+    () =>
+      pageAnnotations.map((annotation) =>
+        transformAnnotation(annotation, rotation),
+      ),
+    [pageAnnotations, rotation],
+  );
   const selectedAnnotation = useMemo(
     () =>
-      pageAnnotations.find((annotation) => annotation.id === selectedId) ??
+      displayAnnotations.find((annotation) => annotation.id === selectedId) ??
       null,
-    [pageAnnotations, selectedId],
+    [displayAnnotations, selectedId],
   );
+  const pageSpaceHeight =
+    rotation % 180 === 0 ? pageSize.height : pageSize.width;
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -341,7 +359,7 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     drawingRef.current = false;
     draggingRef.current = null;
     setDraftPoints(null);
-  }, [activeTool, pageId]);
+  }, [activeTool, pageId, rotation]);
 
   useEffect(() => {
     setEditingId(null);
@@ -352,6 +370,9 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
       ? "auto"
       : "none";
 
+  const toPagePoint = (point: FractionPoint): FractionPoint =>
+    transformFractionPoint(point, inverseRotation(rotation));
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (activeTool !== "pen") return;
     const overlay = overlayRef.current;
@@ -361,7 +382,9 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     overlay.setPointerCapture(event.pointerId);
     setDraftPoints([
       clampFractionPoint(
-        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+        toPagePoint(
+          fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+        ),
       ),
     ]);
   };
@@ -373,7 +396,9 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     setDraftPoints((current) => [
       ...(current ?? []),
       clampFractionPoint(
-        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+        toPagePoint(
+          fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+        ),
       ),
     ]);
   };
@@ -392,7 +417,7 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
         page: pageId,
         color: DEFAULT_COLORS.draw,
         points: draftPoints,
-        strokeWidth: PEN_WIDTH_PX / (pageSize.height || 1),
+        strokeWidth: PEN_WIDTH_PX / (pageSpaceHeight || 1),
       });
     }
     setDraftPoints(null);
@@ -403,7 +428,9 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     const overlay = overlayRef.current;
     if (!overlay) return;
     const point = clampFractionPoint(
-      fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      toPagePoint(
+        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      ),
     );
     if (activeTool === "text") {
       const id = addTextAnnotation(pageId, point);
@@ -436,7 +463,9 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     draggingRef.current = {
       id: annotationId,
       startPoint: clampFractionPoint(
-        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+        toPagePoint(
+          fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+        ),
       ),
       annotation,
     };
@@ -452,7 +481,9 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
     if (!drag || !overlay || activeTool !== "select") return;
 
     const current = clampFractionPoint(
-      fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      toPagePoint(
+        fractionPointFromEvent(event, overlay.getBoundingClientRect()),
+      ),
     );
     const delta = {
       x: current.x - drag.startPoint.x,
@@ -523,7 +554,12 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
           ) {
             continue;
           }
-          rects.push(fractionRectFromClientRect(clientRect, containerRect));
+          rects.push(
+            transformFractionRect(
+              fractionRectFromClientRect(clientRect, containerRect),
+              inverseRotation(rotation),
+            ),
+          );
         }
       }
 
@@ -538,7 +574,7 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
       document.removeEventListener("mouseup", captureTextSelection);
       document.removeEventListener("touchend", captureTextSelection);
     };
-  }, [activeTool, pageId, addRectAnnotation]);
+  }, [activeTool, pageId, addRectAnnotation, rotation]);
 
   return (
     <div
@@ -574,7 +610,7 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
-        {pageAnnotations.map((annotation) => {
+        {displayAnnotations.map((annotation) => {
           if (
             annotation.type === "highlight" ||
             annotation.type === "underline" ||
@@ -595,7 +631,7 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
                 key={annotation.id}
                 annotation={annotation}
                 tool={activeTool}
-                pageHeight={pageSize.height}
+                pageHeight={pageSpaceHeight}
                 onSelect={selectAnnotation}
               />
             );
@@ -606,7 +642,10 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
         {draftPoints && draftPoints.length > 1 && (
           <polyline
             points={draftPoints
-              .map((point) => `${point.x * 100},${point.y * 100}`)
+              .map((point) => {
+                const display = transformFractionPoint(point, rotation);
+                return `${display.x * 100},${display.y * 100}`;
+              })
               .join(" ")}
             fill="none"
             stroke={DEFAULT_COLORS.draw}
@@ -619,14 +658,14 @@ export function PdfAnnotationOverlay({ pageId }: PdfAnnotationOverlayProps) {
         )}
       </svg>
 
-      {pageAnnotations.map((annotation) => {
+      {displayAnnotations.map((annotation) => {
         if (annotation.type === "text") {
           return (
             <TextShape
               key={annotation.id}
               annotation={annotation}
               tool={activeTool}
-              pageSize={pageSize}
+              pageSpaceHeight={pageSpaceHeight}
               editingId={editingId}
               onStartEdit={setEditingId}
               onCommit={(id, content) => {

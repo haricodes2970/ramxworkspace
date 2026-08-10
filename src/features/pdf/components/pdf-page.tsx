@@ -4,6 +4,7 @@ import type { PDFPageProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PdfAnnotationOverlay } from "@/features/pdf/components/pdf-annotation-overlay";
 import { getPageTextItems } from "@/features/pdf/lib/pdf-search";
+import type { PageRotation } from "@/features/pdf/lib/annotation-geometry";
 import { cn } from "@/lib/utils";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import {
@@ -18,7 +19,7 @@ type PdfPageProps = {
   pageId: string;
   sourcePage: number;
   displayIndex: number;
-  rotation: number;
+  rotation: PageRotation;
 };
 
 export function PdfPage({
@@ -200,7 +201,7 @@ export function PdfPage({
         className={cn("pdf-text-layer", textToolActive && "text-interactive")}
         aria-hidden="true"
       />
-      <PdfAnnotationOverlay pageId={pageId} />
+      <PdfAnnotationOverlay pageId={pageId} rotation={rotation} />
       {!rendered && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-muted"

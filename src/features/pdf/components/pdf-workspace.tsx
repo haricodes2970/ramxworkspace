@@ -2,10 +2,12 @@
 
 import { FileText, Loader2, X } from "lucide-react";
 import { loadPdfJs } from "@/features/pdf/lib/pdfjs";
+import { PdfHiddenFileInput } from "@/features/pdf/components/pdf-hidden-file-input";
 import { PdfPageList } from "@/features/pdf/components/pdf-page-list";
 import { PdfThumbnails } from "@/features/pdf/components/pdf-thumbnails";
 import { PdfToolbar } from "@/features/pdf/components/pdf-toolbar";
 import { PdfUploader } from "@/features/pdf/components/pdf-uploader";
+import { validatePdfFile } from "@/features/pdf/lib/pdf-validation";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { Button } from "@/components/ui/button";
@@ -54,6 +56,15 @@ export function PdfWorkspace() {
     }
   };
 
+  const openPicked = async (file: File) => {
+    const result = validatePdfFile(file);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    await openPdf(result.file);
+  };
+
   if (status === "idle") {
     return <PdfUploader onFile={openPdf} />;
   }
@@ -96,6 +107,7 @@ export function PdfWorkspace() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
+      <PdfHiddenFileInput onFile={openPicked} />
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 sm:px-6">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold">{fileName}</h1>

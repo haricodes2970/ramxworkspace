@@ -27,6 +27,8 @@ import { PdfExportBar } from "@/features/pdf/components/pdf-export-bar";
 import { PdfConfirmButton } from "@/features/pdf/components/pdf-confirm-button";
 import { PdfToolsGroup } from "@/features/pdf/components/pdf-tools-group";
 import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
+import { openPdfFile } from "@/features/pdf/lib/pdf-open";
+import type { AnnotationTool } from "@/features/pdf/types/annotation";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
@@ -56,6 +58,9 @@ export function PdfToolbar() {
   const deleteAnnotation = useAnnotationStore(
     (state) => state.deleteAnnotation,
   );
+  const activeTool = useAnnotationStore((state) => state.activeTool);
+  const setTool = useAnnotationStore((state) => state.setTool);
+  const clearSelection = useAnnotationStore((state) => state.clearSelection);
   const currentPageId = usePdfPagesStore((state) => state.currentPageId);
   const rotatePage = usePdfPagesStore((state) => state.rotatePage);
   const deletePage = usePdfPagesStore((state) => state.deletePage);
@@ -69,23 +74,55 @@ export function PdfToolbar() {
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
         target?.isContentEditable;
+      const ctrl = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+      if (ctrl && key === "o") {
+        event.preventDefault();
+        openPdfFile();
+        return;
+      }
+
+      if (ctrl && key === "f") {
         event.preventDefault();
         setSearchOpen(true);
         return;
       }
 
+      if (ctrl && key === "s") {
+        event.preventDefault();
+        if (doc) setExportOpen(true);
+        return;
+      }
+
+      if (ctrl && (key === "+" || key === "=")) {
+        event.preventDefault();
+        zoomIn();
+        return;
+      }
+
+      if (ctrl && (key === "-" || key === "_")) {
+        event.preventDefault();
+        zoomOut();
+        return;
+      }
+
+      if (ctrl && key === "0") {
+        event.preventDefault();
+        resetZoom();
+        return;
+      }
+
       if (inEditable) return;
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+      if (ctrl && key === "z") {
         event.preventDefault();
         if (event.shiftKey) redo();
         else undo();
         return;
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+      if (ctrl && key === "y") {
         event.preventDefault();
         redo();
         return;
@@ -96,11 +133,52 @@ export function PdfToolbar() {
           event.preventDefault();
           deleteAnnotation(selectedId);
         }
+        return;
+      }
+
+      if (event.key === "Escape") {
+        if (searchOpen) {
+          setSearchOpen(false);
+        } else if (exportOpen) {
+          setExportOpen(false);
+        } else if (activeTool !== "select") {
+          setTool("select");
+        } else {
+          clearSelection();
+        }
+        return;
+      }
+
+      if (!ctrl && !event.altKey && !event.metaKey) {
+        const toolByKey: Record<string, AnnotationTool> = {
+          h: "highlight",
+          d: "pen",
+          t: "text",
+          n: "note",
+        };
+        const tool = toolByKey[key];
+        if (tool) setTool(tool);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setSearchOpen, undo, redo, selectedId, deleteAnnotation]);
+  }, [
+    setSearchOpen,
+    setExportOpen,
+    doc,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    undo,
+    redo,
+    selectedId,
+    deleteAnnotation,
+    clearSelection,
+    setTool,
+    activeTool,
+    searchOpen,
+    exportOpen,
+  ]);
 
   useEffect(() => {
     setPageInput(String(currentPage));

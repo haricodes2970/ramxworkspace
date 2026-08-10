@@ -1,9 +1,10 @@
 "use client";
 
 import { FileUp } from "lucide-react";
-import { useCallback, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { setPdfOpenHandler } from "@/features/pdf/lib/pdf-open";
 import { validatePdfFile } from "@/features/pdf/lib/pdf-validation";
 
 type PdfUploaderProps = {
@@ -28,6 +29,11 @@ export function PdfUploader({ onFile }: PdfUploaderProps) {
     },
     [onFile],
   );
+
+  useEffect(() => {
+    setPdfOpenHandler(() => inputRef.current?.click());
+    return () => setPdfOpenHandler(null);
+  }, []);
 
   const handleDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {

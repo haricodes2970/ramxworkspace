@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { fractionRectFromClientRect } from "@/features/pdf/lib/annotation-geometry";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import type {
   Annotation,
@@ -232,6 +233,9 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
   const deleteAnnotation = useAnnotationStore(
     (state) => state.deleteAnnotation,
   );
+  const addRectAnnotation = useAnnotationStore(
+    (state) => state.addRectAnnotation,
+  );
 
   const pageAnnotations = useMemo(
     () => annotations[pageNumber] ?? [],
@@ -262,6 +266,49 @@ export function PdfAnnotationOverlay({ pageNumber }: PdfAnnotationOverlayProps) 
     activeTool === "pen" || activeTool === "text" || activeTool === "note"
       ? "auto"
       : "none";
+
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const captureTextSelection = () => {
+      if (activeTool !== "highlight" && activeTool !== "underline" && activeTool !== "strikeout") {
+        return;
+      }
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+        return;
+      }
+
+      const containerRect = overlay.getBoundingClientRect();
+      const rects: ReturnType<typeof fractionRectFromClientRect>[] = [];
+      for (let i = 0; i < selection.rangeCount; i += 1) {
+        const range = selection.getRangeAt(i);
+        for (const clientRect of Array.from(range.getClientRects())) {
+          if (
+            clientRect.width === 0 ||
+            clientRect.height === 0 ||
+            clientRect.bottom < containerRect.top ||
+            clientRect.top > containerRect.bottom
+          ) {
+            continue;
+          }
+          rects.push(fractionRectFromClientRect(clientRect, containerRect));
+        }
+      }
+
+      if (rects.length === 0) return;
+      selection.removeAllRanges();
+      addRectAnnotation(pageNumber, activeTool, rects);
+    };
+
+    document.addEventListener("mouseup", captureTextSelection);
+    document.addEventListener("touchend", captureTextSelection);
+    return () => {
+      document.removeEventListener("mouseup", captureTextSelection);
+      document.removeEventListener("touchend", captureTextSelection);
+    };
+  }, [activeTool, pageNumber, addRectAnnotation]);
 
   return (
     <div

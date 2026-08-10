@@ -4,6 +4,8 @@ import type { PDFPageProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PdfAnnotationOverlay } from "@/features/pdf/components/pdf-annotation-overlay";
 import { getPageTextItems } from "@/features/pdf/lib/pdf-search";
+import { cn } from "@/lib/utils";
+import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import {
   renderPdfTextLayer,
   type PdfTextItem,
@@ -23,6 +25,11 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
   const searchResultIndex = usePdfViewerStore(
     (state) => state.searchResultIndex,
   );
+  const activeTool = useAnnotationStore((state) => state.activeTool);
+  const textToolActive =
+    activeTool === "highlight" ||
+    activeTool === "underline" ||
+    activeTool === "strikeout";
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -177,7 +184,11 @@ export function PdfPage({ pageNumber }: PdfPageProps) {
       className="relative mx-auto my-2 shadow-lg ring-1 ring-border"
     >
       <canvas ref={canvasRef} className="block bg-white" />
-      <div ref={textLayerRef} className="pdf-text-layer" aria-hidden="true" />
+      <div
+        ref={textLayerRef}
+        className={cn("pdf-text-layer", textToolActive && "text-interactive")}
+        aria-hidden="true"
+      />
       <PdfAnnotationOverlay pageNumber={pageNumber} />
       {!rendered && (
         <div

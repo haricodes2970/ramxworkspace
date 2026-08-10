@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
+import { PdfToolsGroup } from "@/features/pdf/components/pdf-tools-group";
 import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
@@ -167,6 +168,8 @@ export function PdfToolbar() {
           <TooltipContent>Next page</TooltipContent>
         </Tooltip>
       </div>
+
+      <PdfToolsGroup />
 
       <div
         className="ml-auto flex items-center gap-1"

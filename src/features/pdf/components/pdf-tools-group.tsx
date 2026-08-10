@@ -1,6 +1,11 @@
 "use client";
 
-import { Highlighter, MousePointer2 } from "lucide-react";
+import {
+  Highlighter,
+  MousePointer2,
+  Strikethrough,
+  Underline,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -53,6 +58,8 @@ export function PdfToolsGroup() {
     >
       <ToolButton tool="select" label="Select" icon={MousePointer2} />
       <ToolButton tool="highlight" label="Highlight" icon={Highlighter} />
+      <ToolButton tool="underline" label="Underline" icon={Underline} />
+      <ToolButton tool="strikeout" label="Strike through" icon={Strikethrough} />
     </div>
   );
 }

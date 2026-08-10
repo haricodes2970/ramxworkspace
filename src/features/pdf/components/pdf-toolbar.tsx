@@ -7,6 +7,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   RotateCcw,
+  RotateCw,
   Search,
   ZoomIn,
   ZoomOut,
@@ -23,6 +24,7 @@ import { PdfSearchBar } from "@/features/pdf/components/pdf-search-bar";
 import { PdfToolsGroup } from "@/features/pdf/components/pdf-tools-group";
 import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
+import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 
@@ -48,6 +50,8 @@ export function PdfToolbar() {
   const deleteAnnotation = useAnnotationStore(
     (state) => state.deleteAnnotation,
   );
+  const currentPageId = usePdfPagesStore((state) => state.currentPageId);
+  const rotatePage = usePdfPagesStore((state) => state.rotatePage);
 
   const [pageInput, setPageInput] = useState(String(currentPage));
 
@@ -202,6 +206,40 @@ export function PdfToolbar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Next page</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Rotate page counter-clockwise"
+              disabled={!currentPageId}
+              onClick={() => {
+                if (currentPageId) rotatePage(currentPageId, "ccw");
+              }}
+            >
+              <RotateCcw className="size-5" aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Rotate counter-clockwise</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Rotate page clockwise"
+              disabled={!currentPageId}
+              onClick={() => {
+                if (currentPageId) rotatePage(currentPageId, "cw");
+              }}
+            >
+              <RotateCw className="size-5" aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Rotate clockwise</TooltipContent>
         </Tooltip>
       </div>
 

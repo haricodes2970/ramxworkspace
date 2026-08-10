@@ -17,6 +17,7 @@ type PdfPagesState = {
 
   initPages: (numPages: number) => void;
   setCurrentPage: (pageId: string) => void;
+  rotatePage: (pageId: string, direction: "cw" | "ccw") => void;
   clearPages: () => void;
 };
 
@@ -27,6 +28,15 @@ export function pageIdForIndex(index: number): string {
 export function pageIdToSourcePage(pageId: string): number {
   const parsed = Number(pageId.replace("page-", ""));
   return Number.isFinite(parsed) ? parsed : 1;
+}
+
+export function rotatePageEntry(
+  entry: PdfPageEntry,
+  direction: "cw" | "ccw",
+): PdfPageEntry {
+  const delta = direction === "cw" ? 90 : -90;
+  const next = (((entry.rotation + delta) % 360) + 360) % 360;
+  return { ...entry, rotation: next as PageRotation };
 }
 
 function syncViewerCurrentPage(pages: PdfPageEntry[], currentPageId: string) {
@@ -52,6 +62,13 @@ export const usePdfPagesStore = create<PdfPagesState>()((set, get) => ({
     if (get().currentPageId === pageId) return;
     set({ currentPageId: pageId });
     syncViewerCurrentPage(get().pages, pageId);
+  },
+
+  rotatePage: (pageId, direction) => {
+    const pages = get().pages.map((entry) =>
+      entry.id === pageId ? rotatePageEntry(entry, direction) : entry,
+    );
+    set({ pages });
   },
 
   clearPages: () => set({ pages: [], currentPageId: null }),

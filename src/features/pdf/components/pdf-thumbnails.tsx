@@ -32,6 +32,7 @@ function ThumbnailGrid({ onSelect }: { onSelect: (page: number) => void }) {
           pageId={entry.id}
           sourcePage={entry.sourcePage}
           displayIndex={index + 1}
+          rotation={entry.rotation}
           onSelect={selectPage}
         />
       ))}

@@ -18,9 +18,15 @@ type PdfPageProps = {
   pageId: string;
   sourcePage: number;
   displayIndex: number;
+  rotation: number;
 };
 
-export function PdfPage({ pageId, sourcePage, displayIndex }: PdfPageProps) {
+export function PdfPage({
+  pageId,
+  sourcePage,
+  displayIndex,
+  rotation,
+}: PdfPageProps) {
   const doc = usePdfViewerStore((state) => state.doc);
   const scale = usePdfViewerStore((state) => state.scale);
   const searchMatches = usePdfViewerStore((state) => state.searchMatches);
@@ -115,7 +121,7 @@ export function PdfPage({ pageId, sourcePage, displayIndex }: PdfPageProps) {
     if (!target || !canvas || !container) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-    const viewport = target.getViewport({ scale });
+    const viewport = target.getViewport({ scale, rotation });
     const context = canvas.getContext("2d");
     if (!context) return;
 
@@ -149,7 +155,7 @@ export function PdfPage({ pageId, sourcePage, displayIndex }: PdfPageProps) {
         console.error(`Failed to render page ${displayIndex}`, error);
       }
     }
-  }, [page, scale, displayIndex]);
+  }, [page, scale, displayIndex, rotation]);
 
   useEffect(() => {
     if (!page || !inView) return;
@@ -160,7 +166,7 @@ export function PdfPage({ pageId, sourcePage, displayIndex }: PdfPageProps) {
   useEffect(() => {
     const layer = textLayerRef.current;
     if (!layer || !page || textItems.length === 0) return;
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale, rotation });
     renderPdfTextLayer({
       container: layer,
       items: textItems,
@@ -173,7 +179,7 @@ export function PdfPage({ pageId, sourcePage, displayIndex }: PdfPageProps) {
         block: "center",
       });
     }
-  }, [page, textItems, scale, pageMatches]);
+  }, [page, textItems, scale, pageMatches, rotation]);
 
   useEffect(() => {
     return () => {

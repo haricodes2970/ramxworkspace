@@ -84,6 +84,7 @@ export function PdfPageList() {
           pageId={entry.id}
           sourcePage={entry.sourcePage}
           displayIndex={index + 1}
+          rotation={entry.rotation}
         />
       ))}
     </div>

@@ -13,6 +13,7 @@ type PdfThumbnailProps = {
   pageId: string;
   sourcePage: number;
   displayIndex: number;
+  rotation: number;
   onSelect: (page: number) => void;
 };
 
@@ -20,6 +21,7 @@ export function PdfThumbnail({
   pageId,
   sourcePage,
   displayIndex,
+  rotation,
   onSelect,
 }: PdfThumbnailProps) {
   const doc = usePdfViewerStore((state) => state.doc);
@@ -73,9 +75,9 @@ export function PdfThumbnail({
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    const baseViewport = page.getViewport({ scale: 1 });
+    const baseViewport = page.getViewport({ scale: 1, rotation });
     const scale = THUMB_WIDTH / baseViewport.width;
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale, rotation });
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     const context = canvas.getContext("2d");
     if (!context) return;
@@ -100,7 +102,7 @@ export function PdfThumbnail({
           console.error(`Failed to render thumbnail ${displayIndex}`, error);
         }
       });
-  }, [page, inView, rendered, displayIndex]);
+  }, [page, inView, rendered, displayIndex, rotation]);
 
   useEffect(() => {
     return () => {

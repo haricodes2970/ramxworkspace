@@ -414,7 +414,9 @@ export function PdfAnnotationOverlay({
     drawingRef.current = false;
     const overlay = overlayRef.current;
     if (!overlay) return;
-    overlay.releasePointerCapture(event.pointerId);
+    if (overlay.hasPointerCapture(event.pointerId)) {
+      overlay.releasePointerCapture(event.pointerId);
+    }
     if (draftPoints && draftPoints.length > 1) {
       const id = crypto.randomUUID();
       addAnnotation({
@@ -526,7 +528,9 @@ export function PdfAnnotationOverlay({
     const overlay = overlayRef.current;
     if (!drag || !overlay) return;
     draggingRef.current = null;
-    overlay.releasePointerCapture(event.pointerId);
+    if (overlay.hasPointerCapture(event.pointerId)) {
+      overlay.releasePointerCapture(event.pointerId);
+    }
     endUndoGroup();
   };
 

@@ -14,10 +14,8 @@ import {
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
-import {
-  selectCanExport,
-  useGuestExportStore,
-} from "@/features/guest/guest-export-store";
+import { useExportPermission } from "@/features/guest/use-export-permission";
+import { useGuestExportStore } from "@/features/guest/guest-export-store";
 
 const SUCCESS_DURATION_MS = 3000;
 
@@ -41,7 +39,7 @@ export function PdfExportBar() {
   const successTimerRef = useRef<number | null>(null);
 
   const close = usePdfViewerStore((state) => state.setExportOpen);
-  const canExport = useGuestExportStore(selectCanExport);
+  const canExport = useExportPermission();
   const recordSuccessfulExport = useGuestExportStore(
     (state) => state.recordSuccessfulExport,
   );

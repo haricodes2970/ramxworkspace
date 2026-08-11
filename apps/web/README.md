@@ -9,10 +9,10 @@ feature details and architecture notes.
 
 ## Routes
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Landing page (marketing, hero, features, privacy, document types, CTA) |
-| `/workspace` | Guest application shell with the PDF workspace |
+| Route        | Purpose                                                                |
+| ------------ | ---------------------------------------------------------------------- |
+| `/`          | Landing page (marketing, hero, features, privacy, document types, CTA) |
+| `/workspace` | Guest application shell with the PDF workspace                         |
 
 ## Guest mode
 

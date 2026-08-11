@@ -8,12 +8,10 @@ import {
   FileText,
   Folder,
   Gauge,
-  LayoutTemplate,
   Lock,
   PenLine,
   Presentation,
   ScanText,
-  Search,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -33,12 +31,14 @@ const AVAILABLE_FEATURES = [
   {
     icon: FileText,
     title: "PDF viewing",
-    description: "Open multi-page PDFs with fast rendering, zoom, thumbnails and full-text search.",
+    description:
+      "Open multi-page PDFs with fast rendering, zoom, thumbnails and full-text search.",
   },
   {
     icon: PenLine,
     title: "Annotation tools",
-    description: "Highlight, underline, strikeout, draw, add text boxes and sticky notes.",
+    description:
+      "Highlight, underline, strikeout, draw, add text boxes and sticky notes.",
   },
   {
     icon: Trash2,
@@ -48,17 +48,20 @@ const AVAILABLE_FEATURES = [
   {
     icon: Gauge,
     title: "PDF export",
-    description: "Flatten annotations into a clean, validated PDF and download it.",
+    description:
+      "Flatten annotations into a clean, validated PDF and download it.",
   },
   {
     icon: ShieldCheck,
     title: "Local-first processing",
-    description: "Documents are processed in your browser. Nothing is uploaded to a server.",
+    description:
+      "Documents are processed in your browser. Nothing is uploaded to a server.",
   },
   {
     icon: Zap,
     title: "Fast workspace",
-    description: "Responsive editor with keyboard shortcuts and dark mode built in.",
+    description:
+      "Responsive editor with keyboard shortcuts and dark mode built in.",
   },
 ];
 
@@ -77,17 +80,20 @@ const HOW_IT_WORKS = [
   {
     step: "1",
     title: "Open the workspace",
-    description: "No account needed. Enter as a guest and pick a PDF from your device.",
+    description:
+      "No account needed. Enter as a guest and pick a PDF from your device.",
   },
   {
     step: "2",
     title: "Edit your document",
-    description: "Annotate, search, rotate, delete or reorder pages — all in your browser.",
+    description:
+      "Annotate, search, rotate, delete or reorder pages — all in your browser.",
   },
   {
     step: "3",
     title: "Export your PDF",
-    description: "Download the finished document. Guest exports: 3 free, then create an account.",
+    description:
+      "Download the finished document. Guest exports: 3 free, then create an account.",
   },
 ];
 
@@ -147,10 +153,10 @@ function Hero() {
           Your private document workspace.
         </h1>
         <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-          RamSpace is a calm, simple workspace for working with documents in
-          one place. PDF editing is available now — files are processed locally
-          in your browser, with no unnecessary third-party uploads. More
-          document types are on the way.
+          RamSpace is a calm, simple workspace for working with documents in one
+          place. PDF editing is available now — files are processed locally in
+          your browser, with no unnecessary third-party uploads. More document
+          types are on the way.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button asChild size="lg" className="min-w-44">
@@ -216,17 +222,20 @@ function WhyRamSpace() {
     {
       icon: Lock,
       title: "Private by default",
-      description: "PDF editing happens entirely in your browser. Your files are never sent to a server.",
+      description:
+        "PDF editing happens entirely in your browser. Your files are never sent to a server.",
     },
     {
       icon: Zap,
       title: "Simple and fast",
-      description: "Open, edit and export in minutes. No account, no setup, no waiting.",
+      description:
+        "Open, edit and export in minutes. No account, no setup, no waiting.",
     },
     {
       icon: Gauge,
       title: "Grows with you",
-      description: "Cloud storage, folders and more document types are planned — one workspace for everything.",
+      description:
+        "Cloud storage, folders and more document types are planned — one workspace for everything.",
     },
   ];
 
@@ -244,8 +253,14 @@ function WhyRamSpace() {
         {reasons.map((reason) => {
           const Icon = reason.icon;
           return (
-            <div key={reason.title} className="flex flex-col gap-3 rounded-lg border border-border p-5">
-              <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
+            <div
+              key={reason.title}
+              className="flex flex-col gap-3 rounded-lg border border-border p-5"
+            >
+              <Icon
+                className="size-5 text-muted-foreground"
+                aria-hidden="true"
+              />
               <h3 className="text-sm font-semibold">{reason.title}</h3>
               <p className="text-sm leading-6 text-muted-foreground">
                 {reason.description}
@@ -289,7 +304,10 @@ function Privacy() {
             "Open-source friendly architecture",
           ].map((item) => (
             <li key={item} className="flex items-start gap-2">
-              <Check className="mt-0.5 size-4 shrink-0 text-foreground" aria-hidden="true" />
+              <Check
+                className="mt-0.5 size-4 shrink-0 text-foreground"
+                aria-hidden="true"
+              />
               {item}
             </li>
           ))}
@@ -301,7 +319,10 @@ function Privacy() {
 
 function DocumentTypes() {
   return (
-    <section id="documents" className="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-16 sm:px-6 sm:py-20">
+    <section
+      id="documents"
+      className="mx-auto w-full max-w-6xl scroll-mt-16 px-4 py-16 sm:px-6 sm:py-20"
+    >
       <div className="mb-10 max-w-2xl">
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Supported document types
@@ -331,7 +352,10 @@ function DocumentTypes() {
               className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 opacity-80"
             >
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
-                <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+                <Icon
+                  className="size-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium">{item.label}</p>
@@ -359,7 +383,10 @@ function HowItWorks() {
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           {HOW_IT_WORKS.map((step) => (
-            <div key={step.step} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
+            <div
+              key={step.step}
+              className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5"
+            >
               <span
                 className="flex size-8 items-center justify-center rounded-full border border-border bg-muted text-sm font-semibold"
                 aria-hidden="true"

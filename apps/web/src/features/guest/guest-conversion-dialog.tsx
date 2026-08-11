@@ -32,9 +32,9 @@ export function GuestConversionDialog() {
           <DialogHeader>
             <DialogTitle>Account creation is coming soon</DialogTitle>
             <DialogDescription>
-              Sign-up arrives in a later update. Until then you can keep
-              editing this PDF — reopening a document after closing it is not
-              available to guests yet.
+              Sign-up arrives in a later update. Until then you can keep editing
+              this PDF — reopening a document after closing it is not available
+              to guests yet.
             </DialogDescription>
           </DialogHeader>
         ) : (
@@ -42,8 +42,8 @@ export function GuestConversionDialog() {
             <DialogTitle>You&apos;ve used your 3 free exports</DialogTitle>
             <DialogDescription>
               Creating an account will unlock more of the workspace: your
-              documents, cloud storage and folders. For now you can keep
-              editing this PDF — only exporting is limited for guests.
+              documents, cloud storage and folders. For now you can keep editing
+              this PDF — only exporting is limited for guests.
             </DialogDescription>
           </DialogHeader>
         )}
@@ -60,17 +60,10 @@ export function GuestConversionDialog() {
             </Button>
           ) : (
             <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeConversion}
-              >
+              <Button type="button" variant="outline" onClick={closeConversion}>
                 Continue editing
               </Button>
-              <Button
-                type="button"
-                onClick={() => setComingSoon(true)}
-              >
+              <Button type="button" onClick={() => setComingSoon(true)}>
                 Create free account
               </Button>
             </>

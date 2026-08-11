@@ -2,7 +2,7 @@
 
 RamxWorkspace is a self-hosted, privacy-first document workspace. The long-term product direction is a browser-based workspace for PDFs, Word documents, Excel sheets, PowerPoint decks, images, and future AI-assisted document tools.
 
-This repository implements Phase 1 Foundation, Phase 2 (client-side PDF viewer), Phase 3 (annotation engine), Phase 4 (page operations), Phase 5 (PDF export), Phase 6 (UX polish and keyboard shortcuts), and Phase 7 (production Docker deployment and self-hosting). No backend, no document uploads to third-party services: all PDF parsing, rendering and export happens locally in the browser.
+This repository implements Phase 1 Foundation, Phase 2 (client-side PDF viewer), Phase 3 (annotation engine), Phase 4 (page operations), Phase 5 (PDF export), Phase 6 (UX polish and keyboard shortcuts), Phase 7 (production Docker deployment and self-hosting), and Phase 8 (final MVP release validation). No backend, no document uploads to third-party services: all PDF parsing, rendering and export happens locally in the browser.
 
 ## Tech Stack
 
@@ -165,8 +165,27 @@ NEXT_PUBLIC_APP_STAGE=local
 - Phase 5: PDF export: client-side pdf-lib flattening of page order, deletion, rotation and all annotations (highlight, underline, strike-through, freehand, text boxes, sticky notes), filename customization, loading/error/success states, exported-file validation before download. ✅
 - Phase 6: UX polish, accessibility refinement, keyboard shortcuts, performance refinement, loading/error polish. ✅
 - Phase 7: Production deployment: hardened multi-stage Docker image (non-root, tini, health check), single-service Docker Compose, worker-safe standalone build, self-hosting and troubleshooting documentation. ✅
-- Phase 8: Final MVP release validation.
+- Phase 8: Final MVP release validation: full workflow round-trip verification, export/password/edge-case testing, production container validation, documentation cleanup. ✅
 - Future: Word, Excel, PowerPoint, images, offline-first workflows, and AI-powered document tools.
+
+## MVP Scope and Limitations
+
+RamxWorkspace MVP covers one document type (PDF) with the workflow:
+open, view, search, annotate, edit pages, export, download.
+
+Not included in the MVP (future work):
+
+- Word, Excel, PowerPoint and image documents
+- OCR (searching scanned pages)
+- AI-assisted document tools
+- Collaboration or multi-user editing
+- Authentication, accounts or a storage backend
+- Cloud synchronization or external PDF services
+- Merging or splitting documents
+
+The MVP is a single-user, single-document session: opening a new PDF
+replaces the current working document. All processing stays on the
+device running the browser.
 
 ## Privacy Stance
 

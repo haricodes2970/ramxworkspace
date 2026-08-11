@@ -14,6 +14,10 @@ import {
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
+import {
+  selectCanExport,
+  useGuestExportStore,
+} from "@/features/guest/guest-export-store";
 
 const SUCCESS_DURATION_MS = 3000;
 
@@ -37,6 +41,11 @@ export function PdfExportBar() {
   const successTimerRef = useRef<number | null>(null);
 
   const close = usePdfViewerStore((state) => state.setExportOpen);
+  const canExport = useGuestExportStore(selectCanExport);
+  const recordSuccessfulExport = useGuestExportStore(
+    (state) => state.recordSuccessfulExport,
+  );
+  const openConversion = useGuestExportStore((state) => state.openConversion);
 
   useEffect(() => {
     const original = usePdfViewerStore.getState().fileName ?? "document.pdf";
@@ -54,6 +63,10 @@ export function PdfExportBar() {
 
   const handleExport = async () => {
     if (status === "exporting") return;
+    if (!canExport) {
+      openConversion();
+      return;
+    }
     const original = usePdfViewerStore.getState().fileName ?? "document.pdf";
     const finalName = sanitizeExportFileName(fileName, original);
     setFileName(finalName);
@@ -74,6 +87,7 @@ export function PdfExportBar() {
         result.rotations,
       );
       triggerDownload(result.bytes, finalName);
+      recordSuccessfulExport();
       setStatus("success");
       setMessage(`Saved ${finalName}`);
       successTimerRef.current = window.setTimeout(() => {

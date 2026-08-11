@@ -21,8 +21,13 @@ import {
 } from "@/components/ui/tooltip";
 import { appConfig } from "@/lib/env";
 import { useWorkspaceUiStore } from "@/store/workspace-ui-store";
+import type { Folder } from "@/types/workspace";
 
-export function AppHeader() {
+type AppHeaderProps = {
+  folders?: Folder[];
+};
+
+export function AppHeader({ folders = [] }: AppHeaderProps) {
   const sidebarCollapsed = useWorkspaceUiStore(
     (state) => state.sidebarCollapsed,
   );
@@ -94,7 +99,7 @@ export function AppHeader() {
             <SheetTitle>Navigation</SheetTitle>
             <SheetDescription>RamxWorkspace document modules</SheetDescription>
           </SheetHeader>
-          <AppSidebar mobile />
+          <AppSidebar mobile folders={folders} />
         </SheetContent>
       </Sheet>
     </header>

@@ -105,7 +105,7 @@ function LogoMark() {
   );
 }
 
-function LandingNav() {
+function LandingNav({ authenticated }: { authenticated: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
@@ -129,9 +129,14 @@ function LandingNav() {
         </nav>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
+          {!authenticated && (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">Sign In</Link>
+            </Button>
+          )}
           <Button asChild size="sm">
             <Link href="/workspace">
-              Open workspace
+              {authenticated ? "Open Workspace" : "Try for Free"}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </Button>
@@ -453,10 +458,10 @@ function LandingFooter() {
   );
 }
 
-export function LandingPage() {
+export function LandingPage({ authenticated }: { authenticated: boolean }) {
   return (
     <div className="min-h-svh bg-background text-foreground">
-      <LandingNav />
+      <LandingNav authenticated={authenticated} />
       <main>
         <Hero />
         <Features />

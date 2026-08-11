@@ -68,7 +68,7 @@ export function UpdatePasswordForm() {
         setError(friendlyAuthError(authError));
         return;
       }
-      router.push("/workspace");
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");

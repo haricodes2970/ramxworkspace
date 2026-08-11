@@ -64,7 +64,7 @@ export function SignupForm({ emailRedirectTo }: SignupFormProps) {
         return;
       }
       if (data.session) {
-        router.push("/workspace");
+        router.push("/dashboard");
         return;
       }
       setConfirmed(true);

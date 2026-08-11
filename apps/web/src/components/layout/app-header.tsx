@@ -1,10 +1,12 @@
 "use client";
 
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { AccountMenu } from "@/components/layout/account-menu";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { GuestExportStatus } from "@/features/guest/guest-export-status";
+import { useAuthStore } from "@/store/auth-store";
 import {
   Sheet,
   SheetContent,
@@ -30,6 +32,7 @@ export function AppHeader() {
     (state) => state.setMobileNavOpen,
   );
   const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
+  const user = useAuthStore((state) => state.user);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-3 bg-background px-3 sm:px-4">
@@ -81,7 +84,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <GuestExportStatus />
+        {user ? <AccountMenu email={user.email} /> : <GuestExportStatus />}
         <ThemeToggle />
       </div>
 

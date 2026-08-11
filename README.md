@@ -15,7 +15,7 @@ ramxworkspace/
 │   │   └── docs/PROJECT.md      Full project history and features
 │   └── api/                     FastAPI backend foundation
 ├── docs/                        Repository-level documentation
-├── docker-compose.yml           Frontend container (optional hosting)
+├── docker-compose.yml           Frontend + backend containers (optional hosting)
 └── README.md
 ```
 
@@ -49,7 +49,7 @@ Open http://127.0.0.1:8000/health → `{"status": "ok"}`
 | --- | --- |
 | `apps/web` | Next.js 15 PDF workspace. Vercel Root Directory: `apps/web`. |
 | `apps/api` | Minimal FastAPI service with `/health` and env-based CORS. Deployment target: Render or Railway. |
-| `docker-compose.yml` | Optional self-hosted frontend container (build context `./apps/web`). |
+| `docker-compose.yml` | Optional self-hosting: frontend (context `./apps/web`) plus backend (context `./apps/api`). |
 
 No shared code packages exist yet — the frontend and backend have no
 runtime coupling. Shared contracts (API schemas, document types) will
@@ -69,7 +69,7 @@ Never commit `.env` or `.env.local`. Only examples belong in Git.
 - Frontend → Vercel (Root Directory: `apps/web`)
 - Backend/API → Render or Railway (`apps/api`)
 - Database/storage → Supabase (future, not yet integrated)
-- Docker self-hosting → `docker compose up -d --build` (frontend only)
+- Docker self-hosting → `docker compose up -d --build` (frontend + backend)
 
 ## Roadmap
 

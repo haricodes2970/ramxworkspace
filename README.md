@@ -112,14 +112,14 @@ git pull                      # update the source, then rebuild (above)
 
 ### Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| `port is already allocated` | Port 3000 is in use. Change the `ports:` mapping in `docker-compose.yml` (e.g. `"8080:3000"`) and open `http://localhost:8080`. |
-| `Cannot connect to the Docker daemon` | Start Docker (system tray / `systemctl start docker`), then retry. |
-| Image build fails | Check the failing step in the build output. The deps stage needs network access to `registry.npmjs.org`. |
-| Container runs but site unreachable | `docker compose logs` and confirm the health check passes: `docker ps`. |
-| PDF.js worker fails after an update | Force a browser refresh (Ctrl+Shift+R) — the worker is served from the app, not a CDN. |
-| Application looks stale | Browser cache. Hard-refresh or clear site data. |
+| Symptom                               | Fix                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `port is already allocated`           | Port 3000 is in use. Change the `ports:` mapping in `docker-compose.yml` (e.g. `"8080:3000"`) and open `http://localhost:8080`. |
+| `Cannot connect to the Docker daemon` | Start Docker (system tray / `systemctl start docker`), then retry.                                                              |
+| Image build fails                     | Check the failing step in the build output. The deps stage needs network access to `registry.npmjs.org`.                        |
+| Container runs but site unreachable   | `docker compose logs` and confirm the health check passes: `docker ps`.                                                         |
+| PDF.js worker fails after an update   | Force a browser refresh (Ctrl+Shift+R) — the worker is served from the app, not a CDN.                                          |
+| Application looks stale               | Browser cache. Hard-refresh or clear site data.                                                                                 |
 
 ### Deployment model
 

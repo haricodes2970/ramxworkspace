@@ -19,3 +19,15 @@ services:
       timeout: 5s
       start_period: 15s
       retries: 3
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: ramxworkspace-api
+    environment:
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    stop_grace_period: 10s

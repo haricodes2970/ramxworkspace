@@ -8,3 +8,11 @@ docker-compose.yml
 .env*
 !.env.example
 README.md
+.agents
+.codex
+*.tsbuildinfo
+.prettierrc
+.prettierignore
+eslint.config.mjs
+components.json
+next-env.d.ts

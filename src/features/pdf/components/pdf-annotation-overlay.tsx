@@ -587,16 +587,16 @@ export function PdfAnnotationOverlay({
   }, [activeTool, pageId, addRectAnnotation, rotation]);
 
   return (
-<div
-        ref={overlayRef}
-        className="absolute inset-0 overflow-hidden"
-        style={{
-          pointerEvents: rootPointerEvents,
-          zIndex: 3,
-          touchAction: activeTool === "pen" ? "none" : undefined,
-          cursor: activeTool === "pen" ? "crosshair" : undefined,
-        }}
-        onPointerDown={(event) => {
+    <div
+      ref={overlayRef}
+      className="absolute inset-0 overflow-hidden"
+      style={{
+        pointerEvents: rootPointerEvents,
+        zIndex: 3,
+        touchAction: activeTool === "pen" ? "none" : undefined,
+        cursor: activeTool === "pen" ? "crosshair" : undefined,
+      }}
+      onPointerDown={(event) => {
         handlePointerDown(event);
         handleSelectPointerDown(event);
       }}

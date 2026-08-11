@@ -1,7 +1,7 @@
 services:
   ramxworkspace:
     build:
-      context: .
+      context: ./apps/web
       dockerfile: Dockerfile
     container_name: ramxworkspace
     environment:

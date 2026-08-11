@@ -26,7 +26,7 @@ export function AccountMenu({ email }: AccountMenuProps) {
     setSigningOut(true);
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
+      if (supabase) await supabase.auth.signOut();
       router.push("/");
       router.refresh();
     } finally {

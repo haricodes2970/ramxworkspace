@@ -21,6 +21,10 @@ export function UpdatePasswordForm() {
 
   useEffect(() => {
     const supabase = createClient();
+    if (!supabase) {
+      setChecking(false);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       setHasSession(Boolean(data.session));
       setChecking(false);
@@ -53,6 +57,10 @@ export function UpdatePasswordForm() {
     setSubmitting(true);
     try {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Authentication is not configured yet. Try again later.");
+        return;
+      }
       const { error: authError } = await supabase.auth.updateUser({
         password,
       });

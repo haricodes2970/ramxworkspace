@@ -6,9 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function WorkspacePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
 
   return (
     <AppShell>

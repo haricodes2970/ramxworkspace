@@ -50,6 +50,10 @@ export function SignupForm({ emailRedirectTo }: SignupFormProps) {
     setSubmitting(true);
     try {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Authentication is not configured yet. Try again later.");
+        return;
+      }
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,

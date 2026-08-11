@@ -34,6 +34,10 @@ export function LoginForm() {
     setSubmitting(true);
     try {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Authentication is not configured yet. Try again later.");
+        return;
+      }
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,

@@ -17,6 +17,8 @@ export function AuthProvider({ initialUser }: AuthProviderProps) {
     setReady(true);
 
     const supabase = createClient();
+    if (!supabase) return;
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {

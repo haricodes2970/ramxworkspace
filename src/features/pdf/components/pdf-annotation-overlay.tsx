@@ -205,6 +205,9 @@ function TextShape({
         onBlur={(event) =>
           onCommit(annotation.id, event.currentTarget.textContent ?? "")
         }
+        onKeyDown={(event) => {
+          if (event.key === "Escape") event.currentTarget.blur();
+        }}
       >
         {annotation.content}
       </div>
@@ -246,6 +249,9 @@ function NoteShape({
           placeholder="Write a note…"
           className="w-52 rounded-md border border-ring bg-background p-2 text-xs text-foreground shadow-md focus-visible:ring-2 focus-visible:ring-ring"
           onBlur={(event) => onCommit(annotation.id, event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") event.currentTarget.blur();
+          }}
         />
       </div>
     );

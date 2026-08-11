@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RamxWorkspace",
-  description: "A self-hosted, privacy-first document workspace foundation.",
+  title: "RamSpace",
+  description: "A private document workspace. PDF editing in your browser — privacy-first, no uploads.",
 };
 
 export default function RootLayout({

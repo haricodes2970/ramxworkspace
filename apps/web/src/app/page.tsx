@@ -1,10 +1,5 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { PdfWorkspace } from "@/features/pdf/components/pdf-workspace";
+import { LandingPage } from "@/features/landing/landing-page";
 
 export default function Home() {
-  return (
-    <AppShell>
-      <PdfWorkspace />
-    </AppShell>
-  );
+  return <LandingPage />;
 }

@@ -59,10 +59,15 @@ be introduced only when a real need appears.
 
 Each app keeps its own `.env.example`:
 
-- `apps/web/.env.example` — frontend build-time values
-- `apps/api/.env.example` — backend runtime values (`FRONTEND_URL` for CORS, etc.)
+- `apps/web/.env.example` — frontend build-time values (`NEXT_PUBLIC_API_URL` points the API client at the backend: `http://localhost:8000` locally, the Render URL on Vercel)
+- `apps/api/.env.example` — backend runtime values (`FRONTEND_URL` for CORS: `http://localhost:3000` locally, the Vercel origin on Render)
 
 Never commit `.env` or `.env.local`. Only examples belong in Git.
+
+The frontend API client (`apps/web/src/services/api-client.ts`) reads
+`NEXT_PUBLIC_API_URL` and currently only calls `GET /health` — PDF files
+are never sent to the backend; all document processing stays in the
+browser.
 
 ## Deployment targets
 

@@ -64,13 +64,20 @@ curl http://127.0.0.1:8000/health
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `FRONTEND_URL` | `http://localhost:3000` | Allowed browser origin (CORS). Set to the Vercel production URL after the frontend is deployed. |
+| `FRONTEND_URL` | `http://localhost:3000` | Allowed browser origin (CORS). Comma-separated list supported. Set to the deployed Vercel origin in production, e.g. `https://your-app.vercel.app`. |
 | `PORT` | `8000` | HTTP listen port. Render and Railway inject this automatically. |
 
 `API_HOST` / `API_PORT` are honored by `app/core/config.py` for local use;
 the Docker image binds `0.0.0.0:${PORT}` directly.
 
 Never commit `.env` files. Only `.env.example` belongs in Git.
+
+### Development vs production
+
+- Development: backend on `http://localhost:8000`, `FRONTEND_URL=http://localhost:3000`.
+- Production: backend on Render, `FRONTEND_URL` set to the Vercel origin.
+  Set it in the Render dashboard (Environment → Env Vars) — it is never
+  hardcoded in code or in the Dockerfile.
 
 ## Render deployment
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { PDFPageProxy } from "pdfjs-dist";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PdfAnnotationOverlay } from "@/features/pdf/components/pdf-annotation-overlay";
 import { getPageTextItems } from "@/features/pdf/lib/pdf-search";
@@ -204,11 +205,12 @@ export function PdfPage({
       <PdfAnnotationOverlay pageId={pageId} rotation={rotation} />
       {!rendered && (
         <div
-          className="absolute inset-0 flex items-center justify-center bg-muted"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted"
           aria-hidden="true"
         >
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
           <span className="text-xs text-muted-foreground">
-            Page {displayIndex}
+            Loading page {displayIndex}…
           </span>
         </div>
       )}

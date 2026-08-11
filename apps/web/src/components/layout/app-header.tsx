@@ -3,8 +3,8 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GuestExportStatus } from "@/features/guest/guest-export-status";
 import {
   Sheet,
   SheetContent,
@@ -81,9 +81,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Badge variant="secondary" className="hidden sm:inline-flex">
-          Phase 1
-        </Badge>
+        <GuestExportStatus />
         <ThemeToggle />
       </div>
 

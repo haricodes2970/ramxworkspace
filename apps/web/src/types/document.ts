@@ -3,7 +3,11 @@ export type DocumentModuleId =
   | "word"
   | "excel"
   | "powerpoint"
-  | "images";
+  | "images"
+  | "cloud-documents"
+  | "folders"
+  | "templates"
+  | "ai";
 
 export type DocumentModuleStatus = "active" | "planned";
 

@@ -26,4 +26,24 @@ export const DOCUMENT_MODULES: DocumentModule[] = [
     label: "Images",
     status: "planned",
   },
+  {
+    id: "cloud-documents",
+    label: "Cloud Documents",
+    status: "planned",
+  },
+  {
+    id: "folders",
+    label: "Folders",
+    status: "planned",
+  },
+  {
+    id: "templates",
+    label: "Templates",
+    status: "planned",
+  },
+  {
+    id: "ai",
+    label: "AI",
+    status: "planned",
+  },
 ];

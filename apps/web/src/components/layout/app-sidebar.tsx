@@ -2,10 +2,14 @@
 
 import type { ComponentType } from "react";
 import {
+  Cloud,
   FileImage,
   FileSpreadsheet,
   FileText,
+  Folder,
+  LayoutTemplate,
   Presentation,
+  Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -32,6 +36,10 @@ const moduleIcons: Record<
   excel: FileSpreadsheet,
   powerpoint: Presentation,
   images: FileImage,
+  "cloud-documents": Cloud,
+  folders: Folder,
+  templates: LayoutTemplate,
+  ai: Sparkles,
 };
 
 export function AppSidebar({ mobile = false }: AppSidebarProps) {

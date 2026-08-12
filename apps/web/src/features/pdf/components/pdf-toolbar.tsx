@@ -95,6 +95,10 @@ export function PdfToolbar() {
 
       if (ctrl && key === "s") {
         event.preventDefault();
+        if (usePdfViewerStore.getState().source === "cloud") {
+          window.dispatchEvent(new Event("ramspace-save"));
+          return;
+        }
         if (doc) setExportOpen(true);
         return;
       }

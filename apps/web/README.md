@@ -9,16 +9,22 @@ feature details and architecture notes.
 
 ## Routes
 
-| Route              | Purpose                                                                |
-| ------------------ | ---------------------------------------------------------------------- |
-| `/`                | Landing page (marketing, hero, features, privacy, document types, CTA) |
-| `/workspace`       | Application shell — guest or authenticated, with the PDF workspace     |
-| `/login`           | Email + password sign in                                               |
-| `/signup`          | Email + password account creation                                      |
-| `/forgot-password` | Password reset email request                                           |
-| `/update-password` | New password entry (reached via the reset email link)                  |
-| `/auth/confirm`    | Email confirmation info / error page                                   |
-| `/auth/callback`   | Supabase confirmation & recovery redirect handler (code exchange)      |
+| Route                     | Purpose                                                                |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `/`                       | Landing page (marketing, hero, features, privacy, document types, CTA) |
+| `/workspace`              | Application shell — guest or authenticated, with the PDF workspace     |
+| `/login`                  | Email + password sign in                                               |
+| `/signup`                 | Email + password account creation                                      |
+| `/forgot-password`        | Password reset email request                                           |
+| `/update-password`        | New password entry (reached via the reset email link)                  |
+| `/auth/confirm`           | Email confirmation info / error page                                   |
+| `/auth/callback`          | Supabase confirmation & recovery redirect handler (code exchange)      |
+| `/dashboard`              | Authenticated dashboard: greeting, recent documents, folder grid       |
+| `/dashboard/documents`    | Document library (metadata list, cloud upload coming next)             |
+| `/dashboard/folders/[id]` | Folder detail with documents, rename and delete actions                |
+
+After sign-in/sign-up the app lands on `/dashboard`. Guests and signed-out
+visitors are redirected to `/login` from dashboard routes.
 
 ## Authentication
 
@@ -93,6 +99,28 @@ need to override the defaults. Only `.env.example` is committed.
    into the Vercel project env vars.
 5. Note: Supabase's default email service is rate-limited (free tier). A
    custom SMTP provider can be configured later for production mail volume.
+
+## Database (Supabase Postgres)
+
+Workspace data lives in two user-owned tables with full Row Level
+Security — every policy scopes to `auth.uid() = user_id`, so users can
+only see and modify their own rows:
+
+- `folders` — one-level, user-owned folder tree (`name`, timestamps).
+- `documents` — document metadata (`name`, `file_type`, `mime_type`,
+  `size_bytes`, `storage_path`, `last_opened_at`). `storage_path` stays
+  `NULL` until the Supabase Storage integration. `folder_id` is
+  `ON DELETE RESTRICT`: a folder containing documents cannot be deleted,
+  which prevents orphaned metadata.
+
+Migrations live in `supabase/migrations/` at the repository root and are
+applied manually via the Supabase SQL Editor (order matters):
+`0001_workspace_schema.sql` (tables, indexes, `set_updated_at()` trigger),
+then `0002_workspace_rls.sql` (policies). Server-side data access goes
+through `src/lib/dashboard-data.ts`; the client only performs
+row-scoped inserts/updates/deletes (folders) through the folder dialogs
+in `src/features/folders/`. The server never trusts a client-supplied
+`user_id` — RLS supplies ownership.
 
 ## Deploy
 

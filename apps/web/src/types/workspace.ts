@@ -17,6 +17,7 @@ export type DocumentMeta = {
   size_bytes: number | null;
   folder_id: string | null;
   folder_name: string | null;
+  storage_path: string | null;
   created_at: string;
   updated_at: string;
   last_opened_at: string | null;

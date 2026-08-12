@@ -42,6 +42,7 @@ export async function getUserDocuments(
     size_bytes: row.size_bytes,
     folder_id: row.folder_id,
     folder_name: row.folders?.name ?? null,
+    storage_path: row.storage_path,
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_opened_at: row.last_opened_at,
@@ -70,10 +71,41 @@ export async function getRecentDocuments(
     size_bytes: row.size_bytes,
     folder_id: row.folder_id,
     folder_name: row.folders?.name ?? null,
+    storage_path: row.storage_path,
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_opened_at: row.last_opened_at,
   }));
+}
+
+export async function getDocument(
+  supabase: NonNullable<SupabaseClient>,
+  documentId: string,
+): Promise<DocumentMeta | null> {
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*, folders(name)")
+    .eq("id", documentId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Could not load the document.");
+  }
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    file_type: data.file_type,
+    mime_type: data.mime_type,
+    size_bytes: data.size_bytes,
+    folder_id: data.folder_id,
+    folder_name: data.folders?.name ?? null,
+    storage_path: data.storage_path,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    last_opened_at: data.last_opened_at,
+  };
 }
 
 export async function getFolder(
@@ -108,6 +140,7 @@ export async function getFolder(
       size_bytes: row.size_bytes,
       folder_id: row.folder_id,
       folder_name: folderResult.data.name,
+      storage_path: row.storage_path,
       created_at: row.created_at,
       updated_at: row.updated_at,
       last_opened_at: row.last_opened_at,

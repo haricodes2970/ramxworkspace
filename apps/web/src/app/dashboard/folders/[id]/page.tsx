@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, FileText, FolderClosed } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { Button } from "@/components/ui/button";
 import { DeleteFolderDialog } from "@/features/folders/delete-folder-dialog";
 import { RenameFolderDialog } from "@/features/folders/rename-folder-dialog";
+import { DocumentRow } from "@/features/documents/document-row";
+import { UploadDocumentDialog } from "@/features/documents/upload-document-dialog";
 import { getFolder, getUserFolders } from "@/lib/dashboard-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -65,7 +68,12 @@ export default async function FolderPage({
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <UploadDocumentDialog
+              folders={folders}
+              defaultFolderId={folder.id}
+              triggerLabel="Upload here"
+            />
             <RenameFolderDialog folderId={folder.id} folderName={folder.name} />
             <DeleteFolderDialog
               folderId={folder.id}
@@ -85,38 +93,32 @@ export default async function FolderPage({
             </div>
             <h2 className="text-base font-semibold">This folder is empty</h2>
             <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              Cloud upload is coming in the next update. You can still work on
-              PDFs from your device — the editor keeps everything in your
-              browser.
+              Upload a PDF to store it in this folder, or open one directly from
+              your device in the editor.
             </p>
-            <Link
-              href="/workspace"
-              className="mt-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Open local PDF →
-            </Link>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <UploadDocumentDialog
+                folders={folders}
+                defaultFolderId={folder.id}
+                triggerLabel="Upload here"
+              />
+              <Button asChild variant="outline" size="sm">
+                <Link href="/workspace">
+                  <FileText className="size-4" aria-hidden="true" />
+                  Open local PDF
+                </Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border bg-background">
             {documents.map((doc) => (
-              <li
+              <DocumentRow
                 key={doc.id}
-                className="flex flex-wrap items-center gap-3 px-4 py-3"
-              >
-                <FileText
-                  className="size-4 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {doc.name}
-                </span>
-                <span className="hidden text-xs text-muted-foreground sm:block">
-                  {doc.file_type.toUpperCase()}
-                </span>
-                <span className="hidden text-xs text-muted-foreground md:block">
-                  Modified {formatDate(doc.updated_at)}
-                </span>
-              </li>
+                document={doc}
+                folders={folders}
+                showFolder={false}
+              />
             ))}
           </ul>
         )}

@@ -1,18 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, FolderClosed } from "lucide-react";
+import { FileText } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
+import { DocumentRow } from "@/features/documents/document-row";
+import { UploadDocumentDialog } from "@/features/documents/upload-document-dialog";
 import { getUserDocuments, getUserFolders } from "@/lib/dashboard-data";
 import { createClient } from "@/lib/supabase/server";
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export default async function DocumentsPage() {
   const supabase = await createClient();
@@ -33,15 +27,20 @@ export default async function DocumentsPage() {
               My Documents
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your document library. Cloud upload is coming in the next update.
+              {documents.length}{" "}
+              {documents.length === 1 ? "document" : "documents"} stored in your
+              cloud workspace.
             </p>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/workspace">
-              <FileText className="size-4" aria-hidden="true" />
-              Open local PDF
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <UploadDocumentDialog folders={folders} />
+            <Button asChild variant="outline" size="sm">
+              <Link href="/workspace">
+                <FileText className="size-4" aria-hidden="true" />
+                Open local PDF
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {documents.length === 0 ? (
@@ -54,48 +53,17 @@ export default async function DocumentsPage() {
             </div>
             <h2 className="text-base font-semibold">No documents yet</h2>
             <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              Cloud upload is coming next. Until then, you can open PDFs
-              directly from your device in the editor — everything stays in your
-              browser.
+              Upload your first PDF — it will be stored privately in your cloud
+              workspace and ready to open from anywhere.
             </p>
-            <Button asChild variant="outline" size="sm" className="mt-1">
-              <Link href="/workspace">
-                <FileText className="size-4" aria-hidden="true" />
-                Open local PDF
-              </Link>
-            </Button>
+            <div className="mt-1">
+              <UploadDocumentDialog folders={folders} />
+            </div>
           </div>
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border bg-background">
             {documents.map((doc) => (
-              <li
-                key={doc.id}
-                className="flex flex-wrap items-center gap-3 px-4 py-3"
-              >
-                <FileText
-                  className="size-4 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {doc.name}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  {doc.folder_name ? (
-                    <>
-                      <FolderClosed className="size-3" aria-hidden="true" />
-                      {doc.folder_name}
-                    </>
-                  ) : (
-                    "No folder"
-                  )}
-                </span>
-                <span className="hidden text-xs text-muted-foreground sm:block">
-                  {doc.file_type.toUpperCase()}
-                </span>
-                <span className="hidden text-xs text-muted-foreground md:block">
-                  Modified {formatDate(doc.updated_at)}
-                </span>
-              </li>
+              <DocumentRow key={doc.id} document={doc} folders={folders} />
             ))}
           </ul>
         )}

@@ -4,6 +4,7 @@ import { FileText, FolderClosed, History } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { NewFolderDialog } from "@/features/folders/new-folder-dialog";
+import { UploadDocumentDialog } from "@/features/documents/upload-document-dialog";
 import { getRecentDocuments, getUserFolders } from "@/lib/dashboard-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <UploadDocumentDialog folders={folders} />
             <Button asChild variant="outline" size="sm">
               <Link href="/workspace">
                 <FileText className="size-4" aria-hidden="true" />
@@ -71,33 +73,32 @@ export default async function DashboardPage() {
           {recent.length === 0 ? (
             <div className="flex flex-col items-start gap-3 rounded-lg border border-border bg-background px-5 py-6">
               <p className="text-sm text-muted-foreground">
-                No recent documents. Cloud upload is coming in the next update —
-                for now you can work on local PDFs.
+                No recent documents yet. Upload a PDF to get started.
               </p>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/workspace">
-                  <FileText className="size-4" aria-hidden="true" />
-                  Open local PDF
-                </Link>
-              </Button>
+              <UploadDocumentDialog folders={folders} />
             </div>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border bg-background">
               {recent.map((doc) => (
                 <li key={doc.id} className="flex items-center gap-3 px-4 py-3">
-                  <FileText
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    {doc.name}
-                  </span>
-                  <span className="hidden text-xs text-muted-foreground sm:block">
-                    {doc.folder_name ?? "No folder"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(doc.last_opened_at)}
-                  </span>
+                  <Link
+                    href={`/workspace?document=${encodeURIComponent(doc.id)}`}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <FileText
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {doc.name}
+                    </span>
+                    <span className="hidden text-xs text-muted-foreground sm:block">
+                      {doc.folder_name ?? "No folder"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(doc.last_opened_at)}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

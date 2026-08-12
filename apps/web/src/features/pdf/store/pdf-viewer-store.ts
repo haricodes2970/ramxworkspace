@@ -9,6 +9,10 @@ import {
 
 export type PdfViewerStatus = "idle" | "loading" | "ready" | "error";
 
+export type DocumentSource = "local" | "cloud" | null;
+
+export type SaveFeedback = "saved" | "error" | null;
+
 type PdfViewerState = {
   status: PdfViewerStatus;
   error: string | null;
@@ -27,6 +31,14 @@ type PdfViewerState = {
   searchMatches: PdfSearchMatch[];
   searchResultIndex: number;
 
+  source: DocumentSource;
+  cloudDocumentId: string | null;
+  cloudUpdatedAt: string | null;
+  dirty: boolean;
+  saving: boolean;
+  saveFeedback: SaveFeedback;
+  saveError: string | null;
+
   setLoading: () => void;
   setError: (message: string) => void;
   setReady: (
@@ -35,6 +47,12 @@ type PdfViewerState = {
     fileSize: number,
     sourceBytes: ArrayBuffer,
   ) => void;
+  setCloudContext: (documentId: string, updatedAt: string | null) => void;
+  markDirty: () => void;
+  markClean: () => void;
+  setSaving: (saving: boolean) => void;
+  setSaveFeedback: (feedback: SaveFeedback) => void;
+  setSaveError: (message: string | null) => void;
   closeDocument: () => void;
   setScale: (scale: number) => void;
   zoomIn: () => void;
@@ -85,6 +103,14 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
   searchMatches: [],
   searchResultIndex: -1,
 
+  source: null,
+  cloudDocumentId: null,
+  cloudUpdatedAt: null,
+  dirty: false,
+  saving: false,
+  saveFeedback: null,
+  saveError: null,
+
   setLoading: () => set({ status: "loading", error: null }),
   setError: (message) => set({ status: "error", error: message }),
   setReady: (doc, fileName, fileSize, sourceBytes) => {
@@ -105,8 +131,36 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       searchQuery: "",
       searchMatches: [],
       searchResultIndex: -1,
+      source: null,
+      cloudDocumentId: null,
+      cloudUpdatedAt: null,
+      dirty: false,
+      saving: false,
+      saveFeedback: null,
+      saveError: null,
     });
   },
+  setCloudContext: (documentId, updatedAt) =>
+    set({
+      source: "cloud",
+      cloudDocumentId: documentId,
+      cloudUpdatedAt: updatedAt,
+      dirty: false,
+      saving: false,
+      saveFeedback: null,
+      saveError: null,
+    }),
+  markDirty: () => set({ dirty: true, saveFeedback: null, saveError: null }),
+  markClean: () =>
+    set({
+      dirty: false,
+      saving: false,
+      saveFeedback: "saved",
+      saveError: null,
+    }),
+  setSaving: (saving) => set({ saving }),
+  setSaveFeedback: (feedback) => set({ saveFeedback: feedback }),
+  setSaveError: (message) => set({ saveError: message }),
   closeDocument: () => {
     const current = get().doc;
     if (current) {
@@ -129,6 +183,13 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       searchQuery: "",
       searchMatches: [],
       searchResultIndex: -1,
+      source: null,
+      cloudDocumentId: null,
+      cloudUpdatedAt: null,
+      dirty: false,
+      saving: false,
+      saveFeedback: null,
+      saveError: null,
     });
   },
   setScale: (scale) => set({ scale: clampScale(scale) }),

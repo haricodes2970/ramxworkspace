@@ -16,6 +16,7 @@ export async function uploadWithProgress(
   path: string,
   file: File,
   onProgress?: (percent: number) => void,
+  options?: { upsert?: boolean },
 ): Promise<void> {
   const {
     data: { session },
@@ -44,7 +45,7 @@ export async function uploadWithProgress(
     xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
     xhr.setRequestHeader("apikey", supabaseKey);
     xhr.setRequestHeader("Content-Type", "application/pdf");
-    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("x-upsert", options?.upsert ? "true" : "false");
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && onProgress) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { FileText, Loader2, X } from "lucide-react";
 import { loadPdfJs } from "@/features/pdf/lib/pdfjs";
 import { PdfHiddenFileInput } from "@/features/pdf/components/pdf-hidden-file-input";
@@ -10,7 +11,14 @@ import { PdfUploader } from "@/features/pdf/components/pdf-uploader";
 import { validatePdfFile } from "@/features/pdf/lib/pdf-validation";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
+import { createClient } from "@/lib/supabase/client";
+import { markDocumentOpened } from "@/features/documents/document-service";
+import { DOCUMENTS_BUCKET } from "@/lib/supabase/storage";
 import { Button } from "@/components/ui/button";
+
+type PdfWorkspaceProps = {
+  cloudDocumentId?: string | null;
+};
 
 function pdfErrorMessage(error: unknown): string {
   const name = error instanceof Error ? error.name : undefined;
@@ -26,7 +34,17 @@ function pdfErrorMessage(error: unknown): string {
   return "Something went wrong while opening the PDF. Try a different file.";
 }
 
-export function PdfWorkspace() {
+function cloudErrorMessage(message: string | null): string {
+  if (message === "missing") {
+    return "This document is no longer available.";
+  }
+  if (message === "permission") {
+    return "You don't have permission to access this document.";
+  }
+  return "The document could not be opened. Please try again.";
+}
+
+export function PdfWorkspace({ cloudDocumentId = null }: PdfWorkspaceProps) {
   const status = usePdfViewerStore((state) => state.status);
   const error = usePdfViewerStore((state) => state.error);
   const fileName = usePdfViewerStore((state) => state.fileName);
@@ -37,11 +55,82 @@ export function PdfWorkspace() {
   const closeDocument = usePdfViewerStore((state) => state.closeDocument);
   const initPages = usePdfPagesStore((state) => state.initPages);
   const clearPages = usePdfPagesStore((state) => state.clearPages);
+  const cloudLoadRef = useRef<AbortController | null>(null);
 
   const closeAll = () => {
+    cloudLoadRef.current?.abort();
     closeDocument();
     clearPages();
   };
+
+  useEffect(() => {
+    if (!cloudDocumentId) return;
+
+    const controller = new AbortController();
+    cloudLoadRef.current = controller;
+
+    const loadCloudDocument = async () => {
+      const supabase = createClient();
+      if (!supabase) {
+        setError("Cloud storage is not configured yet.");
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError("You need to sign in to open this document.");
+        return;
+      }
+
+      setLoading();
+
+      const { data: row, error: rowError } = await supabase
+        .from("documents")
+        .select("id, name, size_bytes, storage_path")
+        .eq("id", cloudDocumentId)
+        .maybeSingle();
+
+      if (controller.signal.aborted) return;
+
+      if (rowError || !row || !row.storage_path) {
+        setError(cloudErrorMessage("missing"));
+        return;
+      }
+
+      const { data: blob, error: downloadError } = await supabase.storage
+        .from(DOCUMENTS_BUCKET)
+        .download(row.storage_path);
+
+      if (controller.signal.aborted) return;
+
+      if (downloadError || !blob) {
+        setError(cloudErrorMessage(downloadError ? "permission" : "missing"));
+        return;
+      }
+
+      try {
+        const bytes = await blob.arrayBuffer();
+        const { getDocument } = await loadPdfJs();
+        const doc = await getDocument({ data: bytes }).promise;
+        if (controller.signal.aborted) {
+          void doc.destroy();
+          return;
+        }
+        setReady(doc, row.name, row.size_bytes ?? bytes.byteLength, bytes);
+        initPages(doc.numPages);
+        void markDocumentOpened(supabase, row.id);
+      } catch (caught) {
+        if (!controller.signal.aborted) {
+          setError(pdfErrorMessage(caught));
+        }
+      }
+    };
+
+    void loadCloudDocument();
+    return () => controller.abort();
+  }, [cloudDocumentId, setError, setLoading, setReady, initPages]);
 
   const openPdf = async (file: File) => {
     setLoading();

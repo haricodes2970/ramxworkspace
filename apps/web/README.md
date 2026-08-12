@@ -102,7 +102,9 @@ need to override the defaults. Only `.env.example` is committed.
    Editor. It creates the private `documents` bucket (idempotent — no
    duplicate if re-run) and the storage RLS policies. Verify in the
    dashboard: Storage → Buckets → `documents` shows **Private**.
-6. Note: Supabase's default email service is rate-limited (free tier). A
+6. Cloud save: run `supabase/migrations/0004_storage_update_policy.sql`
+   (the UPDATE policy required by upsert replacement).
+7. Note: Supabase's default email service is rate-limited (free tier). A
    custom SMTP provider can be configured later for production mail volume.
 
 ## Database (Supabase Postgres)
@@ -161,6 +163,38 @@ Client responsibilities:
 
 The upload limit defaults to 25 MB and is configurable via
 `NEXT_PUBLIC_MAX_UPLOAD_MB` (MB).
+
+## Cloud save (Phase 5)
+
+Cloud documents are editable: the edited PDF is generated locally with
+the exact same engine used for export (`buildExportedPdf` +
+`validateExportedPdf`), then **upserted onto the same storage path**
+(`{user_id}/{document_id}/{filename}` — the document ID and folder never
+change), and the metadata row's `size_bytes` is updated (`updated_at`
+comes from the existing trigger). This upsert requires the UPDATE policy
+added by `0004_storage_update_policy.sql` — Supabase executes upserts as
+`INSERT ... ON CONFLICT DO UPDATE`, so both policies are evaluated; the
+UPDATE policy carries the same `auth.uid()` ownership guard as the
+others.
+
+Save behavior:
+
+- The Save button appears only for cloud documents; local PDFs keep
+  their open → edit → download flow and are never auto-uploaded.
+- A session-only dirty flag (baseline snapshot of annotations + page
+  operations) drives a "Saved" / "Unsaved changes" status.
+- Unsaved changes are protected: browser `beforeunload`, in-app link
+  clicks and Close PDF all confirm first (Save / Discard / Cancel).
+- Save is a single-user replace: no version history, no conflict
+  resolution. If `updated_at` changed since the document was opened, the
+  user is asked to confirm overwrite.
+- The existing object is never deleted before the replacement uploads,
+  so a failed save preserves the current cloud document. If the upload
+  succeeds but the metadata update fails, the app reports the
+  inconsistency and offers retry.
+- Download export remains independent and never writes to the cloud.
+  Cloud saves do not count against the guest export limit (guests have
+  no Save button).
 
 ## Deploy
 

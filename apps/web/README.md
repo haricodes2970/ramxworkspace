@@ -83,6 +83,7 @@ need to override the defaults. Only `.env.example` is committed.
 | `NEXT_PUBLIC_SUPABASE_URL`             | —                       | Supabase project URL. Required for all auth flows.                                                                             |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | —                       | Supabase publishable (anon) key. Client-safe; never use the service-role key here.                                             |
 | `NEXT_PUBLIC_SITE_URL`                 | `http://localhost:3000` | Public site origin used to build auth redirect URLs (`/auth/callback`, `/update-password`).                                    |
+| `NEXT_PUBLIC_MAX_UPLOAD_MB`            | `25`                    | Maximum cloud upload size in MB. Must stay under the bucket's `file_size_limit`.                                               |
 
 ## Supabase setup (one-time, dashboard)
 
@@ -97,7 +98,11 @@ need to override the defaults. Only `.env.example` is committed.
      `http://localhost:3000/update-password`.
 4. Copy project URL + publishable key into `.env.local` (never commit) and
    into the Vercel project env vars.
-5. Note: Supabase's default email service is rate-limited (free tier). A
+5. Storage: run `supabase/migrations/0003_private_storage.sql` in the SQL
+   Editor. It creates the private `documents` bucket (idempotent — no
+   duplicate if re-run) and the storage RLS policies. Verify in the
+   dashboard: Storage → Buckets → `documents` shows **Private**.
+6. Note: Supabase's default email service is rate-limited (free tier). A
    custom SMTP provider can be configured later for production mail volume.
 
 ## Database (Supabase Postgres)
@@ -108,19 +113,54 @@ only see and modify their own rows:
 
 - `folders` — one-level, user-owned folder tree (`name`, timestamps).
 - `documents` — document metadata (`name`, `file_type`, `mime_type`,
-  `size_bytes`, `storage_path`, `last_opened_at`). `storage_path` stays
-  `NULL` until the Supabase Storage integration. `folder_id` is
+  `size_bytes`, `storage_path`, `last_opened_at`). `folder_id` is
   `ON DELETE RESTRICT`: a folder containing documents cannot be deleted,
   which prevents orphaned metadata.
 
 Migrations live in `supabase/migrations/` at the repository root and are
 applied manually via the Supabase SQL Editor (order matters):
 `0001_workspace_schema.sql` (tables, indexes, `set_updated_at()` trigger),
-then `0002_workspace_rls.sql` (policies). Server-side data access goes
-through `src/lib/dashboard-data.ts`; the client only performs
+then `0002_workspace_rls.sql` (policies), then
+`0003_private_storage.sql` (bucket + storage policies). Server-side data
+access goes through `src/lib/dashboard-data.ts`; the client performs
 row-scoped inserts/updates/deletes (folders) through the folder dialogs
 in `src/features/folders/`. The server never trusts a client-supplied
 `user_id` — RLS supplies ownership.
+
+## Cloud document storage (Supabase Storage)
+
+The PDF binary lives in a **private** bucket named `documents`
+(`0003_private_storage.sql` creates it idempotently). Objects are stored
+at `{user_id}/{document_id}/{filename}`, and storage RLS policies on
+`storage.objects` verify that the first path segment equals `auth.uid()`,
+so users can only reach their own objects. There is no public access, no
+signed URL generation and no UPDATE policy — files are never modified in
+place.
+
+Bucket settings enforced by Supabase: `public = false`,
+`file_size_limit = 26214400` (25 MB) and
+`allowed_mime_types = ['application/pdf']`.
+
+Client responsibilities:
+
+- Uploads go directly from the browser to Supabase Storage (XHR with the
+  session token and a real progress bar) — never through FastAPI.
+- After the object uploads, a `documents` metadata row is inserted with
+  the same UUID used in the storage path. If the metadata insert fails,
+  the freshly uploaded object is deleted immediately (no orphans).
+- Opening a cloud document fetches the metadata row and the private
+  object through the authenticated session, loads the bytes into the
+  existing PDF.js viewer at `/workspace?document=<id>`, and records
+  `last_opened_at`. Export always downloads locally — it never
+  overwrites the cloud original.
+- Deleting a document removes the storage object first, then the
+  metadata row, reporting any inconsistency instead of silently
+  succeeding.
+- Moving a document only updates `documents.folder_id`; the storage
+  path is intentionally stable (`user_id`/`document_id` don't change).
+
+The upload limit defaults to 25 MB and is configurable via
+`NEXT_PUBLIC_MAX_UPLOAD_MB` (MB).
 
 ## Deploy
 

@@ -1,5 +1,8 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import type { PdfTextItem } from "@/features/pdf/lib/pdf-text-layer";
+import {
+  toPdfTextItem,
+  type PdfTextItem,
+} from "@/features/pdf/lib/pdf-text-layer";
 
 export type PdfSearchMatch = {
   page: number;
@@ -83,15 +86,18 @@ export async function getPageTextItems(
   const textContent = await page.getTextContent();
   const items: PdfTextItem[] = textContent.items
     .filter((item): item is { str: string } & typeof item => "str" in item)
-    .map((item) => {
-      const textItem = item as unknown as PdfTextItem;
-      return {
-        str: textItem.str,
-        transform: [...textItem.transform],
-        width: textItem.width,
-        height: textItem.height,
-      };
-    });
+    .map((item) =>
+      toPdfTextItem(
+        item as {
+          str: string;
+          transform: number[];
+          width: number;
+          height: number;
+          fontName?: string;
+        },
+        textContent.styles,
+      ),
+    );
 
   const combined = items.map((item) => item.str).join("");
   cache.set(pageNumber, { items, combined });

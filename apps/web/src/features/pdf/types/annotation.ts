@@ -8,6 +8,7 @@ export type AnnotationType =
 
 export type AnnotationTool =
   | "select"
+  | "edit"
   | "highlight"
   | "underline"
   | "strikeout"

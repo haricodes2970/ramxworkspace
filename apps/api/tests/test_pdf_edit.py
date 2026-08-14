@@ -405,3 +405,211 @@ def test_edited_pdf_remains_editable():
     text = pymupdf.open(stream=io.BytesIO(second.content))[0].get_text()
     assert "Again edited" in text
     assert "Merged replacement" not in text
+
+
+# ---------------------------------------------------------------------------
+# Phase 6.8: real text insertion.
+# ---------------------------------------------------------------------------
+
+def _fixture_insert(**overrides) -> object:
+    data = {
+        "page": "0",
+        "anchorText": "Beta line two",
+        "offsetInAnchor": "0",
+        "insertionText": "beautiful ",
+    }
+    data.update({k: str(v) for k, v in overrides.items()})
+    return client.post(
+        "/pdf/insert-text",
+        data=data,
+        files={"file": ("doc.pdf", _fixture_pdf(), "application/pdf")},
+    )
+
+
+def _words(pdf_bytes: bytes) -> list[tuple[float, float, float, float, str]]:
+    doc = pymupdf.open(stream=io.BytesIO(pdf_bytes), filetype="pdf")
+    words = [(w[0], w[1], w[2], w[3], w[4]) for w in doc[0].get_text("words")]
+    doc.close()
+    return words
+
+
+def test_insert_text_at_line_start_rebuilds_line():
+    response = _fixture_insert()
+    assert response.status_code == 200
+    words = _words(response.content)
+    beautiful = next(w for w in words if w[4] == "beautiful")
+    beta = next(w for w in words if w[4] == "Beta")
+    assert beautiful[0] < beta[0]  # rendered before the original line start
+    assert abs(beautiful[1] - beta[1]) < 0.5  # same baseline
+    assert abs(beautiful[0] - 72) < 1.0  # at the line start
+
+
+def test_insert_text_inline_between_words():
+    response = _fixture_insert(
+        anchorText="Alpha line one", offsetInAnchor="6", insertionText="NEW "
+    )
+    assert response.status_code == 200
+    words = _words(response.content)
+    alpha = next(w for w in words if w[4] == "Alpha")
+    new = next(w for w in words if w[4] == "NEW")
+    line_word = next(w for w in words if w[4] == "line" and abs(w[1] - alpha[1]) < 0.5)
+    assert abs(new[1] - alpha[1]) < 0.5  # same baseline
+    assert alpha[2] <= new[0] and new[2] <= line_word[0]  # between the words
+
+
+def test_insert_text_at_anchor_end_inline():
+    response = _fixture_insert(
+        anchorText="office effect", offsetInAnchor="13", insertionText=" inserted"
+    )
+    assert response.status_code == 200
+    words = _words(response.content)
+    inserted = next(w for w in words if w[4] == "inserted")
+    effect = next(w for w in words if w[4] == "effect")
+    assert abs(inserted[1] - effect[1]) < 0.5
+    assert inserted[0] >= effect[2] - 1.0  # directly after the anchor
+
+
+def test_insert_text_preserves_font_size_color_baseline():
+    response = _fixture_insert(anchorText="Alpha line one", offsetInAnchor="5", insertionText="X ")
+    assert response.status_code == 200
+    doc = pymupdf.open(stream=io.BytesIO(response.content))
+    spans = []
+    for block in doc[0].get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                spans.append(span)
+    original = _span_by_text(_fixture_pdf(), "Alpha line one")
+    x_span = next(s for s in spans if "X" in s["text"])
+    assert x_span["size"] == original["size"]
+    assert x_span["color"] == original["color"]
+    assert abs(x_span["origin"][1] - original["origin"][1]) < 1.0
+    assert "Liberation" in x_span["font"]
+    doc.close()
+
+
+def test_insert_text_rotation_preserved():
+    for rotation in (0, 90, 180, 270):
+        doc = pymupdf.open(stream=io.BytesIO(_fixture_pdf()))
+        doc[0].set_rotation(rotation)
+        rotated = doc.tobytes()
+        doc.close()
+        response = client.post(
+            "/pdf/insert-text",
+            data={
+                "page": "0",
+                "anchorText": "Alpha line one",
+                "offsetInAnchor": "5",
+                "insertionText": "Z ",
+            },
+            files={"file": ("doc.pdf", rotated, "application/pdf")},
+        )
+        assert response.status_code == 200, f"rotation {rotation} failed"
+        reopened = pymupdf.open(stream=io.BytesIO(response.content))
+        assert reopened[0].rotation == rotation
+        assert "Z" in reopened[0].get_text()
+        reopened.close()
+
+
+def test_insert_text_ambiguous_anchor_conflicts():
+    response = _fixture_insert(anchorText="Repeat this line")
+    assert response.status_code == 409
+
+
+def test_insert_text_ambiguous_anchor_rect_disambiguates():
+    response = _fixture_insert(
+        anchorText="Repeat this line",
+        insertionText="X ",
+        rectX0="70",
+        rectY0="548",
+        rectX1="160",
+        rectY1="565",
+    )
+    assert response.status_code == 200
+    words = _words(response.content)
+    hits = [w for w in words if w[4] == "X"]
+    assert len(hits) == 1
+    assert abs(hits[0][1] - 549.1) < 2  # lower occurrence (y0 549.1)
+
+
+def test_insert_text_missing_anchor_rejected():
+    response = _fixture_insert(anchorText="No such phrase here")
+    assert response.status_code == 404
+
+
+def test_insert_text_invalid_page_rejected():
+    response = _fixture_insert(page="9")
+    assert response.status_code == 404
+
+
+def test_insert_text_empty_insertion_rejected():
+    response = _fixture_insert(insertionText="")
+    assert response.status_code == 422
+
+
+def test_insert_text_offset_beyond_anchor_rejected():
+    response = _fixture_insert(anchorText="Beta line two", offsetInAnchor="999")
+    assert response.status_code == 422
+
+
+def test_insert_text_invalid_pdf_rejected():
+    response = client.post(
+        "/pdf/insert-text",
+        data={"page": "0", "anchorText": "x", "offsetInAnchor": "0", "insertionText": "y"},
+        files={"file": ("doc.pdf", b"not a pdf at all", "application/pdf")},
+    )
+    assert response.status_code == 422
+
+
+def test_insert_text_oversized_upload_rejected():
+    big = b"%PDF" + b"0" * (30 * 1024 * 1024)
+    response = client.post(
+        "/pdf/insert-text",
+        data={"page": "0", "anchorText": "x", "offsetInAnchor": "0", "insertionText": "y"},
+        files={"file": ("doc.pdf", big, "application/pdf")},
+    )
+    assert response.status_code == 413
+
+
+def test_insert_text_rebuilds_tight_line_safely():
+    response = _fixture_insert(
+        anchorText="Tight one", offsetInAnchor="5", insertionText=" and more "
+    )
+    assert response.status_code == 200
+    text = pymupdf.open(stream=io.BytesIO(response.content))[0].get_text()
+    assert "Tight and more  one" in text.replace("\n", " ")
+    assert "Tight two" in text  # neighbor intact
+
+
+def test_insert_text_insufficient_room_rejected_without_corruption():
+    # "right side" ends flush at the line edge; a long insertion cannot fit
+    response = _fixture_insert(
+        anchorText="right side",
+        offsetInAnchor="10",
+        insertionText=" with a very long tail of extra words here",
+    )
+    assert response.status_code == 409
+    text = pymupdf.open(stream=io.BytesIO(_fixture_pdf()))[0].get_text()
+    assert "right side" in text  # untouched
+    assert "Chapter 1" in text
+
+
+def test_insert_then_edit_round_trip():
+    inserted = _fixture_insert(
+        anchorText="Beta line two", offsetInAnchor="5", insertionText="beautiful "
+    )
+    assert inserted.status_code == 200
+    text = pymupdf.open(stream=io.BytesIO(inserted.content))[0].get_text()
+    assert "Beta beautiful line two" in text.replace("\n", " ")
+    edited = client.post(
+        "/pdf/edit-text",
+        data={
+            "page": "0",
+            "originalText": "Beta beautiful line two",
+            "replacementText": "edited line",
+        },
+        files={"file": ("doc.pdf", inserted.content, "application/pdf")},
+    )
+    assert edited.status_code == 200
+    text = pymupdf.open(stream=io.BytesIO(edited.content))[0].get_text()
+    assert "edited line" in text
+    assert "beautiful" not in text

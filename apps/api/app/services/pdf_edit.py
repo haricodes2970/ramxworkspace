@@ -61,10 +61,11 @@ class PdfEditError(Exception):
 
 
 class _Char:
-    __slots__ = ("text", "bbox", "origin", "font", "size", "color", "baseline", "line", "block")
+    __slots__ = ("text", "raw", "bbox", "origin", "font", "size", "color", "baseline", "line", "block")
 
-    def __init__(self, text, bbox, origin, font, size, color, baseline, line, block):
+    def __init__(self, text, raw, bbox, origin, font, size, color, baseline, line, block):
         self.text = text
+        self.raw = raw
         self.bbox = bbox
         self.origin = origin
         self.font = font
@@ -127,6 +128,7 @@ def _page_char_stream(page: pymupdf.Page) -> list[_Char]:
                     _Char(
                         " ",
                         None,
+                        None,
                         pymupdf.Point(first_span["origin"][0], baseline),
                         first_span["font"],
                         size,
@@ -146,6 +148,7 @@ def _page_char_stream(page: pymupdf.Page) -> list[_Char]:
                     records.append(
                         _Char(
                             normalized,
+                            char["c"],
                             pymupdf.Rect(char["bbox"]),
                             pymupdf.Point(char["origin"]),
                             span["font"],
@@ -444,3 +447,263 @@ def replace_text_in_pdf(
         doc.close()
 
     return result
+
+
+def _anchor_raw_text(records: list[_Char], start: int, end: int) -> str:
+    """Raw (pre-normalization) text of a matched record range."""
+    return "".join(record.raw for record in records[start:end] if record.raw is not None)
+
+
+def _line_records(records: list[_Char], line_rect: pymupdf.Rect) -> list[_Char]:
+    """All non-synthetic records belonging to one text line.
+
+    Lines are matched by their full bounding box (not just baseline) so
+    sibling lines that share a vertical band — e.g. a left label and a
+    right-aligned run in the same block — stay separate.
+    """
+    return [
+        record
+        for record in records
+        if record.raw is not None
+        and record.line is not None
+        and abs(record.line.x0 - line_rect.x0) <= 0.5
+        and abs(record.line.x1 - line_rect.x1) <= 0.5
+        and abs(record.line.y1 - line_rect.y1) <= 0.5
+    ]
+
+
+def _insertion_point(records: list[_Char], start: int, end: int, raw_offset: int) -> float:
+    """X coordinate of the raw character at `raw_offset` inside the match.
+
+    Offset 0 is the match start; an offset at or past the match end is
+    the match's right edge.
+    """
+    consumed = 0
+    for record in records[start:end]:
+        if record.raw is None:
+            continue
+        if raw_offset <= consumed:
+            return record.bbox.x0
+        consumed += 1
+    return records[end - 1].bbox.x1
+
+
+def insert_text_into_pdf(
+    data: bytes,
+    page_index: int,
+    anchor_text: str,
+    offset_in_anchor: int,
+    insertion_text: str,
+    approx_rect: tuple[float, float, float, float] | None = None,
+) -> bytes:
+    """Insert `insertion_text` into an existing text line of a PDF page.
+
+    The anchor text is located with the same character-level matching as
+    replacement (ligature/soft-hyphen aware, repeated-text safe). The
+    insertion point is `offset_in_anchor` raw characters into the anchor
+    (0 = before the anchor, anchor length = after it).
+
+    Two safe strategies are used, never a destructive guess:
+
+    1. Inline: when the insertion fits in the free space on the line, the
+       text is drawn directly at the insertion point with the anchor's
+       font, size, color and baseline (embedded fonts reused).
+    2. Single-line rebuild: when the line has no room but is uniform
+       (one font/size/color, no overlapping images), the whole line is
+       re-set with the insertion spliced in — equivalent to replacing
+       the line's own text with its edited content.
+
+    Otherwise the request fails with 409 and a clear message; no
+    unrelated glyphs are ever removed.
+    """
+    if not data or len(data) < MIN_PDF_BYTES:
+        raise PdfEditError("Empty or truncated PDF data.")
+    if data[:4] != b"%PDF":
+        raise PdfEditError("File is not a PDF.", status=422)
+    if page_index < 0:
+        raise PdfEditError("Page index must be zero or greater.")
+    if not anchor_text or not anchor_text.strip():
+        raise PdfEditError("Anchor text must not be empty.")
+    if len(anchor_text) > MAX_ORIGINAL_TEXT_LENGTH:
+        raise PdfEditError("Anchor text is too long.", status=413)
+    if not insertion_text.strip():
+        raise PdfEditError("Insertion text must not be empty.", status=422)
+    if len(insertion_text) > MAX_REPLACEMENT_TEXT_LENGTH:
+        raise PdfEditError("Insertion text is too long.", status=413)
+    if offset_in_anchor < 0:
+        raise PdfEditError("Insertion offset must be zero or greater.", status=422)
+
+    query = _normalize_text(anchor_text)
+    if not query:
+        raise PdfEditError("Anchor text contains no matchable characters.")
+
+    try:
+        doc = pymupdf.open(stream=io.BytesIO(data), filetype="pdf")
+    except Exception as exc:  # noqa: BLE001 - pymupdf raises generic exceptions
+        raise PdfEditError(f"Could not parse PDF: {exc}", status=422) from exc
+
+    try:
+        if page_index >= doc.page_count:
+            raise PdfEditError(
+                f"Page {page_index} does not exist (document has {doc.page_count} pages).",
+                status=404,
+            )
+        page = doc[page_index]
+
+        records = _page_char_stream(page)
+        start, end = _find_matches(records, query, approx_rect)
+
+        anchor_raw = _anchor_raw_text(records, start, end)
+        if offset_in_anchor > len(anchor_raw):
+            raise PdfEditError(
+                "Insertion offset is beyond the anchor text.", status=422
+            )
+
+        first = records[start]
+        font_name = first.font
+        font_size = first.size
+        color = first.color
+        baseline = first.baseline
+        font_buffer = _embedded_font_buffer(page, font_name)
+        builtin = _to_builtin_font(font_name)
+
+        point_x = _insertion_point(records, start, end, offset_in_anchor)
+        new_width = _measure_width(font_buffer, builtin, insertion_text, font_size)
+
+        line_rect = first.line or pymupdf.Rect(
+            first.bbox.x0, first.bbox.y0, records[end - 1].bbox.x1, records[end - 1].bbox.y1
+        )
+        # The nearest glyph the insertion could collide with: the anchor's
+        # own character at the insertion point (offset inside the anchor),
+        # the first glyph after the anchor on the same line, or the line end.
+        next_x = line_rect.x1
+        if offset_in_anchor < len(anchor_raw):
+            next_x = _insertion_point(records, start, end, offset_in_anchor)
+        else:
+            for record in records[end:]:
+                if record.raw is None or record.line is None:
+                    continue
+                if abs(record.baseline - baseline) > 0.5:
+                    continue
+                next_x = min(next_x, record.bbox.x0)
+                break
+
+        rebuilt = None
+        if point_x + new_width > next_x + 1.0:
+            rebuilt = _rebuild_line_text(
+                page, records, start, end, offset_in_anchor, insertion_text
+            )
+            if rebuilt is not None:
+                _, rebuilt_width = rebuilt
+                page_width = page.rect.width
+                if line_rect.x0 + rebuilt_width > page_width - 1.0:
+                    raise PdfEditError(
+                        "The inserted text would exceed the page width.",
+                        status=409,
+                    )
+            else:
+                raise PdfEditError(
+                    "Not enough room on this line to insert without overlapping "
+                    "existing text, and the line cannot be safely re-set.",
+                    status=409,
+                )
+
+        if rebuilt is not None:
+            line_text, _ = rebuilt
+            page.add_redact_annot(line_rect, fill=None)
+            page.apply_redactions()
+
+        reused_name: str | None = None
+        if font_buffer:
+            reused_name = f"RamEdit{random.randint(10000, 99999)}"
+            try:
+                page.insert_font(fontname=reused_name, fontbuffer=font_buffer)
+            except Exception:  # noqa: BLE001 - fall back to builtin
+                reused_name = None
+
+        insert_font = reused_name or builtin
+        if rebuilt is not None:
+            x = line_rect.x0
+            text = line_text
+        else:
+            x = point_x
+            text = insertion_text
+
+        page.insert_text(
+            (x, baseline),
+            text,
+            fontsize=font_size,
+            color=_hex_color_to_tuple(color),
+            fontname=insert_font,
+        )
+
+        result = doc.tobytes(garbage=3, deflate=True)
+    except PdfEditError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - surface unexpected failures cleanly
+        raise PdfEditError(f"Text insertion failed: {exc}", status=500) from exc
+    finally:
+        doc.close()
+
+    return result
+
+
+def _rebuild_line_text(
+    page: pymupdf.Page,
+    records: list[_Char],
+    start: int,
+    end: int,
+    offset_in_anchor: int,
+    insertion_text: str,
+) -> tuple[str, float] | None:
+    """Splice the insertion into the anchor's line for a safe re-set.
+
+    Returns (rebuilt raw line text, measured width) when the line is a
+    single uniform text run (one font, size and color) with no image
+    overlap; otherwise None. No unrelated glyphs are touched by callers
+    of this function.
+    """
+    first = records[start]
+    line_rect = first.line
+    if line_rect is None:
+        return None
+    line_recs = _line_records(records, line_rect)
+    if not line_recs:
+        return None
+
+    font_name = line_recs[0].font
+    font_size = line_recs[0].size
+    color = line_recs[0].color
+    for record in line_recs:
+        if (
+            record.font != font_name
+            or abs(record.size - font_size) > 0.01
+            or record.color != color
+        ):
+            return None
+        if record.bbox is None or not line_rect.contains(record.bbox):
+            return None
+
+    # Never re-set a line that overlaps an image: redaction would remove
+    # pixels the re-inserted text cannot restore.
+    for info in page.get_image_info():
+        if line_rect.intersects(pymupdf.Rect(info["bbox"])):
+            return None
+
+    line_text = "".join(record.raw for record in line_recs)
+    anchor_index = None
+    for index, record in enumerate(line_recs):
+        if record is records[start]:
+            anchor_index = index
+            break
+    if anchor_index is None:
+        return None
+    splice_at = anchor_index + offset_in_anchor
+    rebuilt = line_text[:splice_at] + insertion_text + line_text[splice_at:]
+    width = _measure_width(
+        _embedded_font_buffer(page, font_name),
+        _to_builtin_font(font_name),
+        rebuilt,
+        font_size,
+    )
+    return rebuilt, width

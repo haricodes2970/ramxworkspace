@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test --experimental-strip-types \"tests/*.test.ts\""
+    "test": "node --experimental-loader ./tests/resolve-hook.mjs --test --experimental-strip-types \"tests/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -14,9 +14,7 @@ import {
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
 import { editPdfText, insertPdfText } from "@/features/pdf/lib/pdf-edit";
-import {
-  fractionRectsToPdfRects,
-} from "@/features/pdf/lib/pdf-edit-request";
+import { fractionRectsToPdfRects } from "@/features/pdf/lib/pdf-edit-request";
 import type { PdfTextItem } from "@/features/pdf/lib/pdf-text-layer";
 import { pageIdToSourcePage } from "@/features/pdf/store/pdf-pages-store";
 import { PdfEditPopover } from "@/features/pdf/components/pdf-edit-popover";
@@ -718,8 +716,7 @@ export function PdfAnnotationOverlay({
       const sliceStart = Number(span.dataset.editStart ?? 0);
       const sliceText = span.textContent ?? "";
       const rect = span.getBoundingClientRect();
-      const fraction =
-        rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
+      const fraction = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
       const offsetInSlice = Math.round(fraction * sliceText.length);
       const offsetInAnchor = Math.max(
         0,
@@ -938,9 +935,7 @@ export function PdfAnnotationOverlay({
       {editDraft && !editBusy && (
         <PdfEditPopover
           originalText={
-            editDraft.kind === "replace"
-              ? editDraft.text
-              : editDraft.anchorText
+            editDraft.kind === "replace" ? editDraft.text : editDraft.anchorText
           }
           mode={editDraft.kind === "insert" ? "insert" : "replace"}
           position={editPopoverPosition(
@@ -973,7 +968,9 @@ function nearestTextSpan(
     const rect = span.getBoundingClientRect();
     const centerY = (rect.top + rect.bottom) / 2;
     const horizontal =
-      clientX < rect.left ? rect.left - clientX : Math.max(0, clientX - rect.right);
+      clientX < rect.left
+        ? rect.left - clientX
+        : Math.max(0, clientX - rect.right);
     const distance = Math.abs(clientY - centerY) + horizontal;
     if (distance < bestDistance) {
       bestDistance = distance;

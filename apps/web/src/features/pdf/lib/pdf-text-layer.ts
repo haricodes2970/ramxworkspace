@@ -266,10 +266,18 @@ export function renderPdfTextLayer({
       cursor = range.end;
     }
     if (cursor < item.str.length) {
-      appendSpan(container, item.str.slice(cursor), box, fontFamily, scaleX, undefined, {
-        editItem: String(itemIndex),
-        editStart: String(cursor),
-      });
+      appendSpan(
+        container,
+        item.str.slice(cursor),
+        box,
+        fontFamily,
+        scaleX,
+        undefined,
+        {
+          editItem: String(itemIndex),
+          editStart: String(cursor),
+        },
+      );
     }
   });
 }

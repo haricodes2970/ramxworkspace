@@ -7,18 +7,21 @@ import { cn } from "@/lib/utils";
 
 type PdfEditPopoverProps = {
   originalText: string;
+  mode?: "replace" | "insert";
   position: { left: number; top: number; width?: number };
   onCancel: () => void;
   onApply: (replacementText: string) => Promise<void>;
 };
 
 /**
- * Small popover shown after selecting existing PDF text in Edit mode.
- * Displays the original text and collects the replacement. An empty
- * replacement deletes the original text.
+ * Small popover shown after selecting existing PDF text (replace mode) or
+ * clicking a text run (insert mode) in Edit Text mode. Displays the
+ * original/anchor text and collects the new text. An empty replacement
+ * deletes the original text in replace mode; insertion requires text.
  */
 export function PdfEditPopover({
   originalText,
+  mode = "replace",
   position,
   onCancel,
   onApply,
@@ -26,6 +29,7 @@ export function PdfEditPopover({
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const insertMode = mode === "insert";
 
   const handleApply = async () => {
     if (submitting) return;
@@ -56,13 +60,13 @@ export function PdfEditPopover({
       aria-label="Replace text"
     >
       <p className="mb-1 text-xs font-medium text-muted-foreground">
-        Edit text
+        {insertMode ? "Insert text" : "Edit text"}
       </p>
       <p
         className="mb-2 line-clamp-2 rounded bg-muted px-2 py-1 text-xs text-muted-foreground"
         title={originalText}
       >
-        {originalText}
+        {insertMode ? <>Inserting into: {originalText}</> : originalText}
       </p>
       <textarea
         value={value}
@@ -78,9 +82,11 @@ export function PdfEditPopover({
           }
         }}
         rows={2}
-        placeholder="Replacement text (empty deletes)"
+        placeholder={
+          insertMode ? "Text to insert" : "Replacement text (empty deletes)"
+        }
         autoFocus
-        aria-label="Replacement text"
+        aria-label={insertMode ? "Text to insert" : "Replacement text"}
         className={cn(
           "mb-2 w-full resize-none rounded border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring",
         )}
@@ -101,7 +107,7 @@ export function PdfEditPopover({
           variant="default"
           size="sm"
           onClick={() => void handleApply()}
-          disabled={submitting}
+          disabled={submitting || (insertMode && value.trim() === "")}
         >
           {submitting && <Loader2 className="mr-1 size-3 animate-spin" />}
           {submitting ? "Applying" : "Apply"}

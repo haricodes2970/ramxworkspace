@@ -65,3 +65,28 @@ export function buildTextEditRequest(
 ): TextEditRequest {
   return { page, originalText, replacementText, rects };
 }
+
+export type TextInsertRequest = {
+  /** Zero-based page index within the source PDF. */
+  page: number;
+  /** The text run the user clicked (anchor for the insertion point). */
+  anchorText: string;
+  /** Raw character offset within the anchor (0 = before the anchor,
+   * anchor length = after it). */
+  offsetInAnchor: number;
+  /** The text to insert at the anchor position (non-empty). */
+  insertionText: string;
+  /** Approximate PDF-space rectangle (bottom-left origin) used to
+   * disambiguate repeated anchor occurrences. */
+  rects: TextEditRect[];
+};
+
+export function buildTextInsertRequest(
+  page: number,
+  anchorText: string,
+  offsetInAnchor: number,
+  insertionText: string,
+  rects: TextEditRect[],
+): TextInsertRequest {
+  return { page, anchorText, offsetInAnchor, insertionText, rects };
+}

@@ -166,6 +166,7 @@ function appendSpan(
   fontFamily: string,
   scaleX: number,
   extraClass?: string,
+  data?: Record<string, string>,
 ) {
   const span = document.createElement("span");
   span.textContent = text;
@@ -179,6 +180,11 @@ function appendSpan(
     span.style.transform = `scaleX(${scaleX})`;
   }
   if (extraClass) span.classList.add(extraClass);
+  if (data) {
+    for (const [key, value] of Object.entries(data)) {
+      span.dataset[key] = value;
+    }
+  }
   container.appendChild(span);
 }
 
@@ -222,7 +228,10 @@ export function renderPdfTextLayer({
     );
 
     if (ranges.length === 0) {
-      appendSpan(container, item.str, box, fontFamily, scaleX);
+      appendSpan(container, item.str, box, fontFamily, scaleX, undefined, {
+        editItem: String(itemIndex),
+        editStart: "0",
+      });
       return;
     }
 
@@ -235,6 +244,11 @@ export function renderPdfTextLayer({
           box,
           fontFamily,
           scaleX,
+          undefined,
+          {
+            editItem: String(itemIndex),
+            editStart: String(cursor),
+          },
         );
       }
       appendSpan(
@@ -244,11 +258,18 @@ export function renderPdfTextLayer({
         fontFamily,
         scaleX,
         range.current ? "pdf-match pdf-match-current" : "pdf-match",
+        {
+          editItem: String(itemIndex),
+          editStart: String(range.start),
+        },
       );
       cursor = range.end;
     }
     if (cursor < item.str.length) {
-      appendSpan(container, item.str.slice(cursor), box, fontFamily, scaleX);
+      appendSpan(container, item.str.slice(cursor), box, fontFamily, scaleX, undefined, {
+        editItem: String(itemIndex),
+        editStart: String(cursor),
+      });
     }
   });
 }

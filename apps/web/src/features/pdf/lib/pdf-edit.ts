@@ -5,9 +5,10 @@ import { TextEditError } from "@/features/pdf/lib/pdf-edit-request";
 import type {
   TextEditRect,
   TextEditRequest,
+  TextInsertRequest,
 } from "@/features/pdf/lib/pdf-edit-request";
 
-export type { TextEditRect, TextEditRequest };
+export type { TextEditRect, TextEditRequest, TextInsertRequest };
 export { TextEditError } from "@/features/pdf/lib/pdf-edit-request";
 
 /**
@@ -39,6 +40,48 @@ export async function editPdfText(
 
   if (!response.ok) {
     let detail = `Edit failed with status ${response.status}.`;
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      // keep the generic message when the body is not JSON
+    }
+    throw new TextEditError(detail, response.status);
+  }
+
+  return response.arrayBuffer();
+}
+
+/**
+ * Send the current source PDF plus an insertion request to the RamSpace
+ * PDF editing service and return the modified PDF bytes. The text is
+ * inserted at the anchor position with the anchor's font/size/color.
+ */
+export async function insertPdfText(
+  sourceBytes: ArrayBuffer,
+  request: TextInsertRequest,
+): Promise<ArrayBuffer> {
+  const form = new FormData();
+  form.append("file", new Blob([sourceBytes], { type: "application/pdf" }));
+  form.append("page", String(request.page));
+  form.append("anchorText", request.anchorText);
+  form.append("offsetInAnchor", String(request.offsetInAnchor));
+  form.append("insertionText", request.insertionText);
+  const rect = request.rects[0];
+  if (rect) {
+    form.append("rectX0", String(rect.x0));
+    form.append("rectY0", String(rect.y0));
+    form.append("rectX1", String(rect.x1));
+    form.append("rectY1", String(rect.y1));
+  }
+
+  const response = await fetch(`${appConfig.apiUrl}/pdf/insert-text`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!response.ok) {
+    let detail = `Insert failed with status ${response.status}.`;
     try {
       const body = (await response.json()) as { detail?: string };
       if (body.detail) detail = body.detail;

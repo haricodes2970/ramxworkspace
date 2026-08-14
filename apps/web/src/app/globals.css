@@ -161,6 +161,12 @@
   user-select: text;
 }
 
+.pdf-text-layer.edit-interactive span {
+  pointer-events: auto;
+  user-select: text;
+  cursor: text;
+}
+
 .pdf-match {
   background: rgb(255 213 79 / 0.55);
   border-radius: 2px;

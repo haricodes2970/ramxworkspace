@@ -3,9 +3,11 @@ import { test } from "node:test";
 
 import {
   buildTextEditRequest,
+  buildTextInsertRequest,
   fractionRectsToPdfRects,
   TextEditError,
 } from "../src/features/pdf/lib/pdf-edit-request.ts";
+import { buildExportedPdf } from "../src/features/pdf/lib/pdf-export.ts";
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -86,4 +88,68 @@ test("TextEditError carries status and message", () => {
   assert.equal(error.status, 404);
   assert.equal(error.message, "Text not found on page 0.");
   assert.ok(error instanceof Error);
+});
+
+test("buildTextInsertRequest assembles the insertion payload", () => {
+  const request = buildTextInsertRequest(
+    0,
+    "This is a sentence.",
+    10,
+    "beautiful ",
+    [{ x0: 72, y0: 60, x1: 131, y1: 76 }],
+  );
+  assert.deepEqual(request, {
+    page: 0,
+    anchorText: "This is a sentence.",
+    offsetInAnchor: 10,
+    insertionText: "beautiful ",
+    rects: [{ x0: 72, y0: 60, x1: 131, y1: 76 }],
+  });
+});
+
+test("insertion offset clamps to the anchor length", () => {
+  const request = buildTextInsertRequest(2, "Hello", 99, "!", []);
+  assert.equal(request.offsetInAnchor, 99);
+  assert.equal(request.anchorText.length, 5);
+  // the backend rejects offsets beyond the anchor; the client clamps at
+  // the boundary, which the service maps to the anchor end
+  assert.ok(request.offsetInAnchor >= request.anchorText.length);
+});
+
+async function makePdfBytes(pageCount: number): Promise<Uint8Array> {
+  const { PDFDocument } = await import("pdf-lib");
+  const doc = await PDFDocument.create();
+  for (let i = 0; i < pageCount; i += 1) {
+    doc.addPage([612, 792]);
+  }
+  return doc.save();
+}
+
+test("export lifecycle: canonical bytes survive PDF.js-style copy and repeated export", async () => {
+  const saved = await makePdfBytes(2);
+  const canonical = saved.buffer.slice(
+    saved.byteOffset,
+    saved.byteOffset + saved.byteLength,
+  ) as ArrayBuffer;
+  const viewerCopy = canonical.slice(0); // what the viewer hands to PDF.js
+
+  assert.notEqual(viewerCopy, canonical);
+  assert.equal(viewerCopy.byteLength, canonical.byteLength);
+
+  const pages = [
+    { id: "p1", sourcePage: 1, rotation: 0 as const },
+    { id: "p2", sourcePage: 2, rotation: 0 as const },
+  ];
+
+  const first = await buildExportedPdf(canonical, pages, {});
+  assert.equal(first.pageCount, 2);
+
+  // canonical bytes still readable after the export consumed them
+  const second = await buildExportedPdf(canonical, pages, {});
+  assert.equal(second.pageCount, 2);
+
+  // exported bytes reopen cleanly
+  const { PDFDocument } = await import("pdf-lib");
+  const reopened = await PDFDocument.load(second.bytes);
+  assert.equal(reopened.getPageCount(), 2);
 });

@@ -13,8 +13,11 @@ import {
 } from "@/features/pdf/lib/annotation-geometry";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
-import { editPdfText } from "@/features/pdf/lib/pdf-edit";
-import { fractionRectsToPdfRects } from "@/features/pdf/lib/pdf-edit-request";
+import { editPdfText, insertPdfText } from "@/features/pdf/lib/pdf-edit";
+import {
+  fractionRectsToPdfRects,
+} from "@/features/pdf/lib/pdf-edit-request";
+import type { PdfTextItem } from "@/features/pdf/lib/pdf-text-layer";
 import { pageIdToSourcePage } from "@/features/pdf/store/pdf-pages-store";
 import { PdfEditPopover } from "@/features/pdf/components/pdf-edit-popover";
 import {
@@ -40,6 +43,8 @@ type PdfAnnotationOverlayProps = {
   pdfHeight?: number;
   /** Base rotation declared by the PDF itself, for edit geometry. */
   pdfBaseRotation?: number;
+  /** Extracted text runs of the page, used to resolve insertion clicks. */
+  textItems?: PdfTextItem[];
 };
 
 type PageSize = { width: number; height: number };
@@ -304,18 +309,30 @@ export function PdfAnnotationOverlay({
   pdfWidth = 0,
   pdfHeight = 0,
   pdfBaseRotation = 0,
+  textItems = [],
 }: PdfAnnotationOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState<PageSize>({ width: 0, height: 0 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftPoints, setDraftPoints] = useState<FractionPoint[] | null>(null);
-  const [editDraft, setEditDraft] = useState<{
-    text: string;
-    fracRects: FractionRect[];
-    clientRect: DOMRect;
-  } | null>(null);
+  const [editDraft, setEditDraft] = useState<
+    | {
+        kind: "replace";
+        text: string;
+        fracRects: FractionRect[];
+        clientRect: DOMRect;
+      }
+    | {
+        kind: "insert";
+        anchorText: string;
+        offsetInAnchor: number;
+        clientRect: DOMRect;
+      }
+    | null
+  >(null);
   const [editBusy, setEditBusy] = useState(false);
   const drawingRef = useRef(false);
+  const insertSuppressedRef = useRef(false);
   const draggingRef = useRef<{
     id: string;
     startPoint: FractionPoint;
@@ -653,20 +670,80 @@ export function PdfAnnotationOverlay({
 
       if (fracRects.length === 0 || !firstClientRect) return;
       selection.removeAllRanges();
+      // Prevent the click-to-insert handler (fired for the same gesture,
+      // including the synthetic mouseup after a touch) from opening an
+      // insertion popover over this replace draft.
+      insertSuppressedRef.current = true;
       setEditDraft({
+        kind: "replace",
         text,
         fracRects,
         clientRect: firstClientRect,
       });
     };
 
+    const captureInsertClick = (event: MouseEvent | TouchEvent) => {
+      if (insertSuppressedRef.current) {
+        insertSuppressedRef.current = false;
+        return;
+      }
+      if (activeTool !== "edit" || editBusy) return;
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed) return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const pageElement = target.closest("[data-page]");
+      if (!pageElement || pageElement !== overlay.parentElement) return;
+
+      const clientX =
+        "touches" in event
+          ? (event.changedTouches?.[0]?.clientX ?? 0)
+          : event.clientX;
+      const clientY =
+        "touches" in event
+          ? (event.changedTouches?.[0]?.clientY ?? 0)
+          : event.clientY;
+
+      const direct = target.closest("[data-edit-item]");
+      const spans = Array.from(
+        pageElement.querySelectorAll<HTMLElement>("[data-edit-item]"),
+      );
+      const nearest = nearestTextSpan(spans, clientX, clientY);
+      const span = (direct as HTMLElement | null) ?? nearest;
+      if (!span) return;
+
+      const itemIndex = Number(span.dataset.editItem ?? -1);
+      const item = textItems[itemIndex];
+      if (!item) return;
+      const sliceStart = Number(span.dataset.editStart ?? 0);
+      const sliceText = span.textContent ?? "";
+      const rect = span.getBoundingClientRect();
+      const fraction =
+        rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
+      const offsetInSlice = Math.round(fraction * sliceText.length);
+      const offsetInAnchor = Math.max(
+        0,
+        Math.min(item.str.length, sliceStart + offsetInSlice),
+      );
+      setEditDraft({
+        kind: "insert",
+        anchorText: item.str,
+        offsetInAnchor,
+        clientRect: rect,
+      });
+    };
+
     document.addEventListener("mouseup", captureEditSelection);
     document.addEventListener("touchend", captureEditSelection);
+    document.addEventListener("mouseup", captureInsertClick);
+    document.addEventListener("touchend", captureInsertClick);
     return () => {
       document.removeEventListener("mouseup", captureEditSelection);
       document.removeEventListener("touchend", captureEditSelection);
+      document.removeEventListener("mouseup", captureInsertClick);
+      document.removeEventListener("touchend", captureInsertClick);
     };
-  }, [activeTool, rotation, editBusy]);
+  }, [activeTool, rotation, editBusy, textItems]);
 
   const handleEditApply = async (replacementText: string) => {
     if (!editDraft || !sourceBytes) return;
@@ -674,20 +751,46 @@ export function PdfAnnotationOverlay({
     const height = pdfHeight || pageSize.height;
     const totalRotation = ((pdfBaseRotation + rotation) % 360) as PageRotation;
     const rects = fractionRectsToPdfRects(
-      editDraft.fracRects,
+      editDraft.kind === "replace" ? editDraft.fracRects : [],
       width,
       height,
       totalRotation,
     );
     setEditBusy(true);
     try {
-      const bytes = await editPdfText(sourceBytes, {
-        page: pageIdToSourcePage(pageId) - 1,
-        originalText: editDraft.text,
-        replacementText,
-        rects,
-      });
-      await applyTextEdit(bytes);
+      if (editDraft.kind === "replace") {
+        const bytes = await editPdfText(sourceBytes, {
+          page: pageIdToSourcePage(pageId) - 1,
+          originalText: editDraft.text,
+          replacementText,
+          rects,
+        });
+        await applyTextEdit(bytes);
+      } else {
+        const spanRects = fractionRectsToPdfRects(
+          [
+            transformFractionRect(
+              fractionRectFromClientRect(
+                editDraft.clientRect,
+                overlayRef.current?.getBoundingClientRect() ??
+                  editDraft.clientRect,
+              ),
+              inverseRotation(rotation),
+            ),
+          ],
+          width,
+          height,
+          totalRotation,
+        );
+        const bytes = await insertPdfText(sourceBytes, {
+          page: pageIdToSourcePage(pageId) - 1,
+          anchorText: editDraft.anchorText,
+          offsetInAnchor: editDraft.offsetInAnchor,
+          insertionText: replacementText,
+          rects: spanRects,
+        });
+        await applyTextEdit(bytes);
+      }
       setEditDraft(null);
     } finally {
       setEditBusy(false);
@@ -834,7 +937,12 @@ export function PdfAnnotationOverlay({
 
       {editDraft && !editBusy && (
         <PdfEditPopover
-          originalText={editDraft.text}
+          originalText={
+            editDraft.kind === "replace"
+              ? editDraft.text
+              : editDraft.anchorText
+          }
+          mode={editDraft.kind === "insert" ? "insert" : "replace"}
           position={editPopoverPosition(
             editDraft.clientRect,
             overlayRef.current,
@@ -852,6 +960,27 @@ export function PdfAnnotationOverlay({
       )}
     </div>
   );
+}
+
+function nearestTextSpan(
+  spans: HTMLElement[],
+  clientX: number,
+  clientY: number,
+): HTMLElement | null {
+  let best: HTMLElement | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const span of spans) {
+    const rect = span.getBoundingClientRect();
+    const centerY = (rect.top + rect.bottom) / 2;
+    const horizontal =
+      clientX < rect.left ? rect.left - clientX : Math.max(0, clientX - rect.right);
+    const distance = Math.abs(clientY - centerY) + horizontal;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = span;
+    }
+  }
+  return best;
 }
 
 function editPopoverPosition(

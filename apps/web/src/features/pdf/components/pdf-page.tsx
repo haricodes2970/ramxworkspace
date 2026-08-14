@@ -40,6 +40,7 @@ export function PdfPage({
     activeTool === "highlight" ||
     activeTool === "underline" ||
     activeTool === "strikeout";
+  const editToolActive = activeTool === "edit";
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -199,7 +200,11 @@ export function PdfPage({
       <canvas ref={canvasRef} className="block bg-white" />
       <div
         ref={textLayerRef}
-        className={cn("pdf-text-layer", textToolActive && "text-interactive")}
+        className={cn(
+          "pdf-text-layer",
+          textToolActive && "text-interactive",
+          editToolActive && "edit-interactive",
+        )}
         aria-hidden="true"
       />
       <PdfAnnotationOverlay
@@ -208,6 +213,7 @@ export function PdfPage({
         pdfWidth={page ? page.view[2] : 0}
         pdfHeight={page ? page.view[3] : 0}
         pdfBaseRotation={page ? page.rotate : 0}
+        textItems={textItems}
       />
       {!rendered && (
         <div

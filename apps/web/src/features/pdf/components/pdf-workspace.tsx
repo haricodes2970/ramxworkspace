@@ -210,7 +210,10 @@ export function PdfWorkspace({ cloudDocumentId = null }: PdfWorkspaceProps) {
       try {
         const bytes = await blob.arrayBuffer();
         const { getDocument } = await loadPdfJs();
-        const doc = await getDocument({ data: bytes }).promise;
+        // PDF.js transfers the buffer to its worker, detaching it; the
+        // canonical sourceBytes must stay independent, so the worker gets
+        // a copy.
+        const doc = await getDocument({ data: bytes.slice(0) }).promise;
         if (controller.signal.aborted) {
           void doc.destroy();
           return;
@@ -305,7 +308,9 @@ export function PdfWorkspace({ cloudDocumentId = null }: PdfWorkspaceProps) {
     try {
       const data = await file.arrayBuffer();
       const { getDocument } = await loadPdfJs();
-      const doc = await getDocument({ data }).promise;
+      // Copy for the worker; the canonical buffer must remain usable for
+      // export and cloud save after PDF.js has loaded the document.
+      const doc = await getDocument({ data: data.slice(0) }).promise;
       setReady(doc, file.name, file.size, data);
       initPages(doc.numPages);
     } catch (caught) {

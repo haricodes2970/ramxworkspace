@@ -31,11 +31,16 @@ Final architecture:
 4. Apply sends the current source PDF bytes plus
    `{ page, originalText, replacementText, rects }` to
    `POST {API_URL}/pdf/edit-text`.
-5. Backend: locates the text with `search_for` (disambiguated by the
-   approximate rect), redacts the span bounding box with `fill=None`
-   (glyph removal, background preserved), and inserts the replacement at
-   the original baseline with the span's font size and color, using a
-   Standard-14 font mapping.
+5. Backend: locates the text with a character-level scan of the page's
+   text structure (`get_text("rawdict")`), disambiguated by the
+   approximate rect. Each matching glyph is redacted with `fill=None`
+   (glyph removal, background preserved) using per-line merged bounding
+   boxes, and the replacement is inserted at the original baseline with
+   the original font size and color.
+6. When the original span uses an embedded font, its font program is
+   extracted and re-embedded (`extract_font` + `insert_font`), so the
+   replacement renders in the true font. Otherwise a Standard-14
+   equivalent is used.
 6. Client replaces `sourceBytes` with the returned PDF and reloads the
    document — the viewer now renders genuine modified content.
 
@@ -49,7 +54,31 @@ Final architecture:
   export geometry pipeline exactly (`fractionRectToPdfRect` with
   `totalRotation = baseRotation + userRotation`).
 - Multi-rect selections are supported; the backend picks the closest
-  match when a string occurs more than once.
+  match when a string occurs more than once. If the string occurs more
+  than once and no rect is provided, the backend returns `409` instead
+  of guessing.
+
+## Text matching (fidelity)
+
+Matching is character-level over the page's text structure, which keeps
+the edit honest when the visual string differs from the raw glyphs:
+
+- **Ligatures** (`fi`, `fl`, `ffi`, …) are decomposed to their ASCII
+  sequences so a selection like "fire" matches glyph `ﬁ` + `re`.
+- **Soft hyphens** (U+00AD) are dropped from both sides, so a
+  "softword" selection matches a word that wraps with a discretionary
+  hyphen.
+- **Multi-line** selections are supported: lines are joined with a
+  synthetic space, so "Alpha line one\nBeta line two" matches and
+  removes both lines, then inserts one replacement at the first line's
+  baseline.
+- **Embedded fonts** are reused: the font program is extracted from the
+  source PDF and re-embedded for the replacement (`insert_font`), giving
+  true font fidelity instead of a fallback. Built-in (Standard-14)
+  fonts fall back to their Helvetica/Times/Courier equivalents.
+- **Alignment**: replacement is left-anchored by default; a clear
+  trailing span becomes right-anchored and a near-symmetric span is
+  centered, using line (and block) geometry captured before redaction.
 
 ## Undo / Redo
 
@@ -80,21 +109,25 @@ Removal is true redaction, not a white rectangle:
 
 ## Known limitations (honest)
 
-- **Fonts**: the replacement uses a Standard-14 mapping (Helvetica,
-  Times-Roman, Courier, Symbol, ZapfDingbats). Custom/embedded fonts are
-  not reproduced; a fallback font is used at the original size and color.
+- **Fonts**: embedded fonts are reproduced via font-program reuse; a
+  fallback Standard-14 font is used when the source font is not embedded
+  or not extractable. Metrics may differ slightly from the original
+  glyphs (baseline, size and color are preserved exactly).
 - **Overlapping text**: redaction removes any glyph whose bounding box
-  intersects the target rectangle. Text lines that overlap the target
-  (e.g. tightly stacked lines or layered labels) can lose glyphs.
-- **Alignment**: replacement is left-anchored at the original start
-  position. Right/center-aligned text approximates position only.
+  intersects the per-line target rectangle. Tightly stacked lines are
+  safe (each matched line gets its own rect), but glyphs that physically
+  overlap the matched text on the same line can still be lost.
+- **Alignment**: right/center anchoring is a conservative heuristic
+  (trailing-span or near-symmetric lines). Standalone lines with no
+  column context stay left-anchored.
 - **Single selection**: the popover edits one selected string per apply.
-  Multi-rect (multi-line) replacements work when the backend finds the
-  string, but a dedicated multi-line edit UX is deferred.
+  Multi-line replacements are supported when the selection spans lines,
+  but a dedicated multi-line edit UX is deferred.
 - **Text-layer vs content differences**: the selected string must match
   the PDF's extractable text (ligatures, hyphenation and layout
   transformations may differ). Backend responds 404 with a clear message
-  when no match is found.
+  when no match is found, and 409 when a repeated string needs a
+  disambiguation rect.
 
 ## Backend contract
 
@@ -103,7 +136,8 @@ Removal is true redaction, not a white rectangle:
   `rectX0/Y0/X1/Y1` disambiguation rect.
 - Returns `application/pdf` with the modified document.
 - Errors: `422` invalid PDF / malformed request, `404` missing page or
-  text, `413` upload or replacement too large (30 MB upload cap).
+  text, `409` repeated text without a disambiguation rect, `413` upload
+  or replacement too large (30 MB upload cap).
 - The service processes documents entirely in memory; nothing is
   persisted on the backend.
 

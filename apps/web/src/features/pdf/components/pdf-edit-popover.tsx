@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 type PdfEditPopoverProps = {
   originalText: string;
-  position: { left: number; top: number };
+  position: { left: number; top: number; width?: number };
   onCancel: () => void;
   onApply: (replacementText: string) => Promise<void>;
 };
@@ -45,8 +45,13 @@ export function PdfEditPopover({
 
   return (
     <div
-      className="absolute z-50 w-80 rounded-lg border border-border bg-background p-3 shadow-lg"
-      style={{ left: position.left, top: position.top, pointerEvents: "auto" }}
+      className="absolute z-50 rounded-lg border border-border bg-background p-3 shadow-lg"
+      style={{
+        left: position.left,
+        top: position.top,
+        width: position.width ?? 320,
+        pointerEvents: "auto",
+      }}
       role="dialog"
       aria-label="Replace text"
     >

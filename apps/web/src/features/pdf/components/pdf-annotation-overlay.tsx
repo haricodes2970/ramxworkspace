@@ -857,18 +857,25 @@ export function PdfAnnotationOverlay({
 function editPopoverPosition(
   clientRect: DOMRect,
   overlay: HTMLDivElement | null,
-): { left: number; top: number } {
+): { left: number; top: number; width: number } {
   const containerRect = overlay?.getBoundingClientRect();
-  if (!containerRect) return { left: 8, top: 8 };
+  if (!containerRect) return { left: 8, top: 8, width: 320 };
   const POPOVER_WIDTH = 320;
+  const POPOVER_HEIGHT = 200;
+  const width = Math.min(
+    POPOVER_WIDTH,
+    Math.max(200, containerRect.width - 16),
+  );
   const left = Math.min(
     Math.max(8, clientRect.left - containerRect.left),
-    Math.max(8, containerRect.width - POPOVER_WIDTH - 8),
+    Math.max(8, containerRect.width - width - 8),
   );
-  return {
-    left,
-    top: clientRect.bottom - containerRect.top + 6,
-  };
+  const below = clientRect.bottom - containerRect.top + 6;
+  const fitsBelow = below + POPOVER_HEIGHT <= containerRect.height;
+  const top = fitsBelow
+    ? below
+    : Math.max(8, clientRect.top - containerRect.top - POPOVER_HEIGHT - 6);
+  return { left, top, width };
 }
 
 function deleteButtonPosition(annotation: Annotation): [number, number] {

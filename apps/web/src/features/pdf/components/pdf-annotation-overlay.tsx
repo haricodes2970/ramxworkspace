@@ -12,9 +12,15 @@ import {
   type PageRotation,
 } from "@/features/pdf/lib/annotation-geometry";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
+import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
+import { editPdfText } from "@/features/pdf/lib/pdf-edit";
+import { fractionRectsToPdfRects } from "@/features/pdf/lib/pdf-edit-request";
+import { pageIdToSourcePage } from "@/features/pdf/store/pdf-pages-store";
+import { PdfEditPopover } from "@/features/pdf/components/pdf-edit-popover";
 import {
   DEFAULT_COLORS,
   type FractionPoint,
+  type FractionRect,
 } from "@/features/pdf/types/annotation";
 
 const PEN_WIDTH_PX = 3;
@@ -29,6 +35,11 @@ import type {
 type PdfAnnotationOverlayProps = {
   pageId: string;
   rotation: PageRotation;
+  /** PDF-space page dimensions (rotation 0) for edit geometry. */
+  pdfWidth?: number;
+  pdfHeight?: number;
+  /** Base rotation declared by the PDF itself, for edit geometry. */
+  pdfBaseRotation?: number;
 };
 
 type PageSize = { width: number; height: number };
@@ -290,11 +301,20 @@ function NoteShape({
 export function PdfAnnotationOverlay({
   pageId,
   rotation,
+  pdfWidth = 0,
+  pdfHeight = 0,
+  pdfBaseRotation = 0,
 }: PdfAnnotationOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pageSize, setPageSize] = useState<PageSize>({ width: 0, height: 0 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftPoints, setDraftPoints] = useState<FractionPoint[] | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    text: string;
+    fracRects: FractionRect[];
+    clientRect: DOMRect;
+  } | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
   const drawingRef = useRef(false);
   const draggingRef = useRef<{
     id: string;
@@ -326,6 +346,8 @@ export function PdfAnnotationOverlay({
   );
   const beginUndoGroup = useAnnotationStore((state) => state.beginUndoGroup);
   const endUndoGroup = useAnnotationStore((state) => state.endUndoGroup);
+  const applyTextEdit = usePdfViewerStore((state) => state.applyTextEdit);
+  const sourceBytes = usePdfViewerStore((state) => state.sourceBytes);
 
   const pageAnnotations = useMemo(
     () => annotations[pageId] ?? [],
@@ -586,6 +608,92 @@ export function PdfAnnotationOverlay({
     };
   }, [activeTool, pageId, addRectAnnotation, rotation]);
 
+  useEffect(() => {
+    if (activeTool !== "edit") {
+      setEditDraft(null);
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const captureEditSelection = () => {
+      if (activeTool !== "edit" || editBusy) return;
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+        return;
+      }
+      const text = selection.toString().trim();
+      if (!text) return;
+
+      const containerRect = overlay.getBoundingClientRect();
+      const fracRects: FractionRect[] = [];
+      let firstClientRect: DOMRect | null = null;
+      for (let i = 0; i < selection.rangeCount; i += 1) {
+        const range = selection.getRangeAt(i);
+        for (const clientRect of Array.from(range.getClientRects())) {
+          if (
+            clientRect.width === 0 ||
+            clientRect.height === 0 ||
+            clientRect.bottom < containerRect.top ||
+            clientRect.top > containerRect.bottom
+          ) {
+            continue;
+          }
+          if (!firstClientRect) firstClientRect = clientRect;
+          fracRects.push(
+            transformFractionRect(
+              fractionRectFromClientRect(clientRect, containerRect),
+              inverseRotation(rotation),
+            ),
+          );
+        }
+      }
+
+      if (fracRects.length === 0 || !firstClientRect) return;
+      selection.removeAllRanges();
+      setEditDraft({
+        text,
+        fracRects,
+        clientRect: firstClientRect,
+      });
+    };
+
+    document.addEventListener("mouseup", captureEditSelection);
+    document.addEventListener("touchend", captureEditSelection);
+    return () => {
+      document.removeEventListener("mouseup", captureEditSelection);
+      document.removeEventListener("touchend", captureEditSelection);
+    };
+  }, [activeTool, rotation, editBusy]);
+
+  const handleEditApply = async (replacementText: string) => {
+    if (!editDraft || !sourceBytes) return;
+    const width = pdfWidth || pageSize.width;
+    const height = pdfHeight || pageSize.height;
+    const totalRotation = ((pdfBaseRotation + rotation) % 360) as PageRotation;
+    const rects = fractionRectsToPdfRects(
+      editDraft.fracRects,
+      width,
+      height,
+      totalRotation,
+    );
+    setEditBusy(true);
+    try {
+      const bytes = await editPdfText(sourceBytes, {
+        page: pageIdToSourcePage(pageId) - 1,
+        originalText: editDraft.text,
+        replacementText,
+        rects,
+      });
+      await applyTextEdit(bytes);
+      setEditDraft(null);
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
   return (
     <div
       ref={overlayRef}
@@ -723,8 +831,44 @@ export function PdfAnnotationOverlay({
           ✕
         </button>
       )}
+
+      {editDraft && !editBusy && (
+        <PdfEditPopover
+          originalText={editDraft.text}
+          position={editPopoverPosition(
+            editDraft.clientRect,
+            overlayRef.current,
+          )}
+          onCancel={() => setEditDraft(null)}
+          onApply={handleEditApply}
+        />
+      )}
+      {editDraft && editBusy && (
+        <div className="absolute inset-x-0 top-2 z-50 flex justify-center">
+          <div className="rounded-md bg-background px-3 py-1.5 text-xs text-muted-foreground shadow-md">
+            Replacing text…
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function editPopoverPosition(
+  clientRect: DOMRect,
+  overlay: HTMLDivElement | null,
+): { left: number; top: number } {
+  const containerRect = overlay?.getBoundingClientRect();
+  if (!containerRect) return { left: 8, top: 8 };
+  const POPOVER_WIDTH = 320;
+  const left = Math.min(
+    Math.max(8, clientRect.left - containerRect.left),
+    Math.max(8, containerRect.width - POPOVER_WIDTH - 8),
+  );
+  return {
+    left,
+    top: clientRect.bottom - containerRect.top + 6,
+  };
 }
 
 function deleteButtonPosition(annotation: Annotation): [number, number] {

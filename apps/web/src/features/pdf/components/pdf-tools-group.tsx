@@ -3,6 +3,7 @@
 import {
   Highlighter,
   MousePointer2,
+  PencilLine,
   Pen,
   Redo2,
   StickyNote,
@@ -18,6 +19,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
+import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
+import { redoAction, undoAction } from "@/features/pdf/lib/pdf-edit";
 import type { AnnotationTool } from "@/features/pdf/types/annotation";
 
 type ToolButtonProps = {
@@ -58,8 +61,15 @@ function ToolButton({ tool, label, icon: Icon, shortcut }: ToolButtonProps) {
 export function PdfToolsGroup() {
   const canUndo = useAnnotationStore((state) => state.past.length > 0);
   const canRedo = useAnnotationStore((state) => state.future.length > 0);
-  const undo = useAnnotationStore((state) => state.undo);
-  const redo = useAnnotationStore((state) => state.redo);
+  const editPastCount = usePdfViewerStore(
+    (state) => state.editHistory.past.length,
+  );
+  const editFutureCount = usePdfViewerStore(
+    (state) => state.editHistory.future.length,
+  );
+
+  const handleUndo = () => void undoAction();
+  const handleRedo = () => void redoAction();
 
   return (
     <div
@@ -68,6 +78,12 @@ export function PdfToolsGroup() {
       aria-label="Annotation tools"
     >
       <ToolButton tool="select" label="Select" icon={MousePointer2} />
+      <ToolButton
+        tool="edit"
+        label="Edit text"
+        icon={PencilLine}
+        shortcut="E"
+      />
       <ToolButton
         tool="highlight"
         label="Highlight"
@@ -102,8 +118,8 @@ export function PdfToolsGroup() {
             size="icon"
             aria-label="Undo (Ctrl+Z)"
             aria-keyshortcuts="Control+z"
-            disabled={!canUndo}
-            onClick={undo}
+            disabled={!canUndo && editPastCount === 0}
+            onClick={handleUndo}
           >
             <Undo2 className="size-4" aria-hidden="true" />
           </Button>
@@ -118,8 +134,8 @@ export function PdfToolsGroup() {
             size="icon"
             aria-label="Redo (Ctrl+Y)"
             aria-keyshortcuts="Control+y Control+Shift+z"
-            disabled={!canRedo}
-            onClick={redo}
+            disabled={!canRedo && editFutureCount === 0}
+            onClick={handleRedo}
           >
             <Redo2 className="size-4" aria-hidden="true" />
           </Button>

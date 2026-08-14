@@ -202,7 +202,13 @@ export function PdfPage({
         className={cn("pdf-text-layer", textToolActive && "text-interactive")}
         aria-hidden="true"
       />
-      <PdfAnnotationOverlay pageId={pageId} rotation={rotation} />
+      <PdfAnnotationOverlay
+        pageId={pageId}
+        rotation={rotation}
+        pdfWidth={page ? page.view[2] : 0}
+        pdfHeight={page ? page.view[3] : 0}
+        pdfBaseRotation={page ? page.rotate : 0}
+      />
       {!rendered && (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted"

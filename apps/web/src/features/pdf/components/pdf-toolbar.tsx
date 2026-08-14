@@ -30,6 +30,7 @@ import { fitPdfToWidth } from "@/features/pdf/lib/pdf-layout";
 import { openPdfFile } from "@/features/pdf/lib/pdf-open";
 import type { AnnotationTool } from "@/features/pdf/types/annotation";
 import { useAnnotationStore } from "@/features/pdf/store/annotation-store";
+import { redoAction, undoAction } from "@/features/pdf/lib/pdf-edit";
 import { usePdfPagesStore } from "@/features/pdf/store/pdf-pages-store";
 import { scrollToPdfPage } from "@/features/pdf/lib/pdf-scroll";
 import { usePdfViewerStore } from "@/features/pdf/store/pdf-viewer-store";
@@ -52,8 +53,6 @@ export function PdfToolbar() {
   const setSearchOpen = usePdfViewerStore((state) => state.setSearchOpen);
   const exportOpen = usePdfViewerStore((state) => state.exportOpen);
   const setExportOpen = usePdfViewerStore((state) => state.setExportOpen);
-  const undo = useAnnotationStore((state) => state.undo);
-  const redo = useAnnotationStore((state) => state.redo);
   const selectedId = useAnnotationStore((state) => state.selectedId);
   const deleteAnnotation = useAnnotationStore(
     (state) => state.deleteAnnotation,
@@ -125,14 +124,14 @@ export function PdfToolbar() {
 
       if (ctrl && key === "z") {
         event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
+        if (event.shiftKey) void redoAction();
+        else void undoAction();
         return;
       }
 
       if (ctrl && key === "y") {
         event.preventDefault();
-        redo();
+        void redoAction();
         return;
       }
 
@@ -159,6 +158,7 @@ export function PdfToolbar() {
 
       if (!ctrl && !event.altKey && !event.metaKey) {
         const toolByKey: Record<string, AnnotationTool> = {
+          e: "edit",
           h: "highlight",
           u: "underline",
           d: "pen",
@@ -178,8 +178,6 @@ export function PdfToolbar() {
     zoomIn,
     zoomOut,
     resetZoom,
-    undo,
-    redo,
     selectedId,
     deleteAnnotation,
     clearSelection,

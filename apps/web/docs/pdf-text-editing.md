@@ -8,11 +8,11 @@ export → save.
 
 Three approaches were evaluated with evidence before implementation:
 
-| Approach | Result |
-| --- | --- |
-| A. Client overlay + whiteout | Rejected. The original text stays in the PDF content stream; hiding it with a white rectangle is fake editing and breaks on colored backgrounds, images and multi-column layouts. |
-| B. pdf-lib content-stream editing | Rejected after verification. pdf-lib exposes no content-stream editing API — only `translateContent`, `scaleContent`, `drawText` and append-style `getContentStream`. It cannot remove or replace existing glyphs. |
-| C. FastAPI + PyMuPDF | Chosen. Verified empirically: a fill-less redaction removes the target glyphs from the content stream while background graphics survive unchanged, and the replacement can be inserted at the original baseline with the original size, color and approximate font. |
+| Approach                          | Result                                                                                                                                                                                                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. Client overlay + whiteout      | Rejected. The original text stays in the PDF content stream; hiding it with a white rectangle is fake editing and breaks on colored backgrounds, images and multi-column layouts.                                                                                   |
+| B. pdf-lib content-stream editing | Rejected after verification. pdf-lib exposes no content-stream editing API — only `translateContent`, `scaleContent`, `drawText` and append-style `getContentStream`. It cannot remove or replace existing glyphs.                                                  |
+| C. FastAPI + PyMuPDF              | Chosen. Verified empirically: a fill-less redaction removes the target glyphs from the content stream while background graphics survive unchanged, and the replacement can be inserted at the original baseline with the original size, color and approximate font. |
 
 Final architecture:
 

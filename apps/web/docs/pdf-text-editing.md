@@ -1,8 +1,8 @@
 # PDF Text Editing — Architecture
 
-How existing-PDF-text replacement works in RamSpace, why it is a hybrid
-architecture, and how edits flow through selection → backend → undo →
-export → save.
+How existing-PDF-text replacement, deletion and insertion work in
+RamSpace, why it is a hybrid architecture, and how edits flow through
+selection → backend → undo → export → save.
 
 ## Decision: Hybrid (client UI + our own backend)
 
@@ -16,24 +16,37 @@ Three approaches were evaluated with evidence before implementation:
 
 Final architecture:
 
-- **Client side** — text selection (corrected PDF.js text layer), Edit tool,
-  replacement popover, geometry conversion, undo/redo, document reload.
-- **Backend** — our own FastAPI + PyMuPDF service (`POST /pdf/edit-text`)
-  performs the true content modification. PDFs never leave RamSpace
-  infrastructure; no third-party APIs are involved.
+- **Client side** — text selection (corrected PDF.js text layer), Edit Text
+  tool, replacement/insertion popovers, geometry conversion, undo/redo,
+  document reload.
+- **Backend** — our own FastAPI + PyMuPDF service (`POST /pdf/edit-text`,
+  `POST /pdf/insert-text`) performs the true content modification. PDFs
+  never leave RamSpace infrastructure; no third-party APIs are involved.
+
+## Edit Text tool
+
+The **Edit Text** tool (`E`) is distinct from the **Text Box** annotation
+tool: Text Box places a floating annotation, Edit Text genuinely modifies
+the PDF content stream.
+
+- **Replace / delete** — drag over existing text, type the replacement in
+  the popover (empty = delete).
+- **Insert** — click inside a text run (or between words; a gap click
+  falls back to the nearest run) and type the text to insert. The click
+  position becomes the insertion point.
 
 ## Edit flow
 
-1. User activates the **Edit** tool (toolbar or `E`).
-2. User selects existing text in the PDF.js text layer.
-3. A popover appears showing the original text and a replacement input
-   (empty replacement = delete).
-4. Apply sends the current source PDF bytes plus
-   `{ page, originalText, replacementText, rects }` to
-   `POST {API_URL}/pdf/edit-text`.
+1. User activates the **Edit Text** tool (toolbar or `E`).
+2. User selects existing text (replace) or clicks a text run (insert).
+3. A popover appears: replacement mode shows the original text and a
+   replacement input (empty = delete); insertion mode shows the anchor
+   run and a "text to insert" input.
+4. Apply sends the current source PDF bytes plus the request to the
+   matching backend endpoint.
 5. Backend: locates the text with a character-level scan of the page's
    text structure (`get_text("rawdict")`), disambiguated by the
-   approximate rect. Each matching glyph is redacted with `fill=None`
+   approximate rect. Matching glyphs are redacted with `fill=None`
    (glyph removal, background preserved) using per-line merged bounding
    boxes, and the replacement is inserted at the original baseline with
    the original font size and color.
@@ -43,6 +56,29 @@ Final architecture:
    equivalent is used.
 7. Client replaces `sourceBytes` with the returned PDF and reloads the
    document — the viewer now renders genuine modified content.
+
+## Insertion behavior
+
+Insertion reuses the same character-level matching pipeline and the same
+byte-level undo history. The backend receives `{ page, anchorText,
+offsetInAnchor, insertionText, rects }`; `offsetInAnchor` is the raw
+character offset inside the anchor run (0 = before the anchor, anchor
+length = after it).
+
+Two safe strategies are used, never a destructive guess:
+
+1. **Inline** — when the insertion fits in the free space of the line
+   (the next glyph on the line, or the line end), it is drawn directly at
+   the insertion point with the anchor's font, size, color and baseline.
+2. **Single-line re-set** — when the line has no inline room but is a
+   uniform text run (one font/size/color, no overlapping images), the
+   whole line is re-set with the insertion spliced in. This is how
+   "This is a sentence." → "This is a beautiful sentence." works.
+
+If neither strategy is safe, the backend returns `409` with a clear
+message. Unrelated glyphs are never removed. This is an honest MVP — it
+is **not** Word-style paragraph reflow: only the clicked line is
+rebuilt, and only when it is safe to do so.
 
 ## Selection model
 
@@ -97,6 +133,31 @@ unchanged. After an edit, `sourceBytes` holds the backend-modified PDF,
 so export and cloud save include the edit automatically. No changes to
 the export pipeline or Supabase storage were required.
 
+## Export byte lifecycle (detached ArrayBuffer fix)
+
+PDF.js **transfers** the buffer given to `getDocument({ data })` to its
+worker, which detaches the caller's buffer. Previously the same buffer
+was stored as `sourceBytes`, so the first pdf-lib export failed with
+"Cannot perform Construct on a detached ArrayBuffer".
+
+The invariant now is:
+
+```
+canonical sourceBytes (never given to PDF.js)
+      |
+      +---- bytes.slice(0) ----> PDF.js worker (detachable copy)
+      |
+      +------------------------> pdf-lib export (repeated, safe)
+      |
+      +------------------------> cloud save
+```
+
+- Both open paths (local file and cloud download) pass a copy to PDF.js
+  and keep the original as `sourceBytes`.
+- Text-edit reloads already passed a copy (`reloadFromSourceBytes`).
+- Regression test: canonical bytes survive a PDF.js-style copy, two
+  consecutive exports, and the exported bytes reopen.
+
 ## Whiteout / background handling
 
 Removal is true redaction, not a white rectangle:
@@ -123,32 +184,46 @@ Removal is true redaction, not a white rectangle:
 - **Single selection**: the popover edits one selected string per apply.
   Multi-line replacements are supported when the selection spans lines,
   but a dedicated multi-line edit UX is deferred.
+- **Insertion is single-line**: the insertion point always resolves to
+  one text line. Multi-line insertion (wrapping a paragraph) is not
+  supported; the backend returns a clear error when the insertion cannot
+  be placed safely on the clicked line.
+- **Insertion anchor fidelity**: the clicked run (anchor) must match the
+  PDF's extractable text. Runs that pdf.js splits differently than
+  PyMuPDF (rare font-mix cases) may yield a 404; clicking the exact run
+  generally avoids this.
 - **Text-layer vs content differences**: the selected string must match
   the PDF's extractable text (ligatures, hyphenation and layout
   transformations may differ). Backend responds 404 with a clear message
   when no match is found, and 409 when a repeated string needs a
-  disambiguation rect.
+  disambiguation rect or an insertion has no safe room.
 
 ## Backend contract
 
 - `POST /pdf/edit-text` (multipart): `file`, `page` (0-based),
   `originalText`, `replacementText` (empty = delete), optional
   `rectX0/Y0/X1/Y1` disambiguation rect.
-- Returns `application/pdf` with the modified document.
+- `POST /pdf/insert-text` (multipart): `file`, `page` (0-based),
+  `anchorText`, `offsetInAnchor` (raw chars, 0-based), `insertionText`,
+  optional `rectX0/Y0/X1/Y1` disambiguation rect.
+- Both return `application/pdf` with the modified document.
 - Errors: `422` invalid PDF / malformed request, `404` missing page or
-  text, `409` repeated text without a disambiguation rect, `413` upload
-  or replacement too large (30 MB upload cap).
+  text, `409` repeated text without a disambiguation rect (or insertion
+  with no safe room), `413` upload or replacement too large (30 MB
+  upload cap).
 - The service processes documents entirely in memory; nothing is
   persisted on the backend.
 
 ## Guest behavior
 
-The edit endpoint is unauthenticated (like the rest of the current
-backend). Guests can edit text; the guest export limit is unaffected.
+The edit and insert endpoints are unauthenticated (like the rest of the
+current backend). Guests can edit, insert and delete text; the guest
+export limit is unaffected.
 
 ## Performance (241-page TrustNet PDF, 3.9 MB)
 
 - Single replacement: ~0.27 s backend time.
 - 25 sequential replacements: ~4.75 s total (~0.19 s each).
+- Insertion uses the same pipeline and has the same order of magnitude.
 - Browser work is a full document reload after each apply; rendering is
   async and does not block the UI thread.

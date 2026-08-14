@@ -13,6 +13,13 @@ export type DocumentSource = "local" | "cloud" | null;
 
 export type SaveFeedback = "saved" | "error" | null;
 
+export type TextEditHistory = {
+  past: ArrayBuffer[];
+  future: ArrayBuffer[];
+};
+
+const TEXT_EDIT_HISTORY_LIMIT = 20;
+
 type PdfViewerState = {
   status: PdfViewerStatus;
   error: string | null;
@@ -38,6 +45,9 @@ type PdfViewerState = {
   saving: boolean;
   saveFeedback: SaveFeedback;
   saveError: string | null;
+  editHistory: TextEditHistory;
+  textEditBusy: boolean;
+  textEditError: string | null;
 
   setLoading: () => void;
   setError: (message: string) => void;
@@ -71,6 +81,10 @@ type PdfViewerState = {
   runSearch: (query: string) => Promise<void>;
   nextMatch: () => void;
   prevMatch: () => void;
+  applyTextEdit: (bytes: ArrayBuffer) => Promise<void>;
+  undoTextEdit: () => Promise<void>;
+  redoTextEdit: () => Promise<void>;
+  reloadFromSourceBytes: (bytes: ArrayBuffer) => Promise<void>;
 };
 
 export const MIN_SCALE = 0.25;
@@ -110,6 +124,9 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
   saving: false,
   saveFeedback: null,
   saveError: null,
+  editHistory: { past: [], future: [] },
+  textEditBusy: false,
+  textEditError: null,
 
   setLoading: () => set({ status: "loading", error: null }),
   setError: (message) => set({ status: "error", error: message }),
@@ -138,6 +155,9 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       saving: false,
       saveFeedback: null,
       saveError: null,
+      editHistory: { past: [], future: [] },
+      textEditBusy: false,
+      textEditError: null,
     });
   },
   setCloudContext: (documentId, updatedAt) =>
@@ -190,6 +210,9 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
       saving: false,
       saveFeedback: null,
       saveError: null,
+      editHistory: { past: [], future: [] },
+      textEditBusy: false,
+      textEditError: null,
     });
   },
   setScale: (scale) => set({ scale: clampScale(scale) }),
@@ -242,5 +265,63 @@ export const usePdfViewerStore = create<PdfViewerState>()((set, get) => ({
     const prev =
       (searchResultIndex - 1 + searchMatches.length) % searchMatches.length;
     set({ searchResultIndex: prev });
+  },
+
+  reloadFromSourceBytes: async (bytes) => {
+    const { loadPdfJs } = await import("@/features/pdf/lib/pdfjs");
+    const { getDocument } = await loadPdfJs();
+    const nextDoc = await getDocument({ data: bytes.slice(0) }).promise;
+    const previous = get().doc;
+    if (previous && previous !== nextDoc) {
+      void previous.destroy();
+    }
+    set({ doc: nextDoc, sourceBytes: bytes });
+  },
+
+  applyTextEdit: async (bytes) => {
+    const current = get();
+    const history = current.editHistory;
+    const past = current.sourceBytes
+      ? [...history.past, current.sourceBytes].slice(-TEXT_EDIT_HISTORY_LIMIT)
+      : history.past;
+    set({
+      editHistory: { past, future: [] },
+      textEditBusy: false,
+      textEditError: null,
+    });
+    await get().reloadFromSourceBytes(bytes);
+    get().markDirty();
+  },
+
+  undoTextEdit: async () => {
+    const history = get().editHistory;
+    if (history.past.length === 0) return;
+    const previous = history.past[history.past.length - 1];
+    const currentBytes = get().sourceBytes;
+    const nextHistory = {
+      past: history.past.slice(0, -1),
+      future: currentBytes
+        ? [...history.future, currentBytes].slice(-TEXT_EDIT_HISTORY_LIMIT)
+        : history.future,
+    };
+    set({ editHistory: nextHistory });
+    await get().reloadFromSourceBytes(previous);
+    get().markDirty();
+  },
+
+  redoTextEdit: async () => {
+    const history = get().editHistory;
+    if (history.future.length === 0) return;
+    const next = history.future[0];
+    const currentBytes = get().sourceBytes;
+    const nextHistory = {
+      past: currentBytes
+        ? [...history.past, currentBytes].slice(-TEXT_EDIT_HISTORY_LIMIT)
+        : history.past,
+      future: history.future.slice(1),
+    };
+    set({ editHistory: nextHistory });
+    await get().reloadFromSourceBytes(next);
+    get().markDirty();
   },
 }));

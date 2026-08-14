@@ -303,6 +303,31 @@ def _embedded_font_buffer(page: pymupdf.Page, font_name: str) -> bytes | None:
     return None
 
 
+def _usable_font_buffer(
+    page: pymupdf.Page, font_name: str, sample_text: str
+) -> bytes | None:
+    """Embedded font program that can actually re-render `sample_text`.
+
+    Subset-embedded fonts (very common in real-world PDFs) often carry no
+    unicode cmap, so re-inserting text through them produces NOTDEF
+    glyphs. Such buffers are rejected here and the builtin fallback is
+    used instead — the original document is never touched in that case.
+    """
+    buffer = _embedded_font_buffer(page, font_name)
+    if not buffer:
+        return None
+    try:
+        font = pymupdf.Font(fontbuffer=buffer)
+        for char in set(sample_text):
+            if char.isspace() or ord(char) > 0xFFFF:
+                continue
+            if not font.has_glyph(ord(char)):
+                return None
+    except Exception:  # noqa: BLE001 - treat unreadable buffers as unusable
+        return None
+    return buffer
+
+
 def _measure_width(
     font_buffer: bytes | None, builtin: str, text: str, size: float
 ) -> float:
@@ -406,7 +431,9 @@ def replace_text_in_pdf(
         baseline = first.baseline
 
         # Capture the embedded font program before redaction may prune it.
-        font_buffer = _embedded_font_buffer(page, font_name)
+        # Subset fonts without a unicode cmap are rejected so replacement
+        # text never renders as NOTDEF glyphs.
+        font_buffer = _usable_font_buffer(page, font_name, replacement_text)
         builtin = _to_builtin_font(font_name)
 
         line_rects = _line_rects(records, start, end)
@@ -564,7 +591,9 @@ def insert_text_into_pdf(
         font_size = first.size
         color = first.color
         baseline = first.baseline
-        font_buffer = _embedded_font_buffer(page, font_name)
+        # Reusable only when the buffer can render the text to be inserted
+        # (subset fonts without a unicode cmap would produce NOTDEF glyphs).
+        font_buffer = _usable_font_buffer(page, font_name, insertion_text)
         builtin = _to_builtin_font(font_name)
 
         point_x = _insertion_point(records, start, end, offset_in_anchor)
@@ -701,7 +730,7 @@ def _rebuild_line_text(
     splice_at = anchor_index + offset_in_anchor
     rebuilt = line_text[:splice_at] + insertion_text + line_text[splice_at:]
     width = _measure_width(
-        _embedded_font_buffer(page, font_name),
+        _usable_font_buffer(page, font_name, rebuilt),
         _to_builtin_font(font_name),
         rebuilt,
         font_size,

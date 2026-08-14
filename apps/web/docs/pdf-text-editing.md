@@ -41,7 +41,7 @@ Final architecture:
    extracted and re-embedded (`extract_font` + `insert_font`), so the
    replacement renders in the true font. Otherwise a Standard-14
    equivalent is used.
-6. Client replaces `sourceBytes` with the returned PDF and reloads the
+7. Client replaces `sourceBytes` with the returned PDF and reloads the
    document — the viewer now renders genuine modified content.
 
 ## Selection model
